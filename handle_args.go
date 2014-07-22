@@ -42,22 +42,24 @@ func ParseArguments() arguments {
 	flag.Parse()
 
 	if parsedArgs.command == "" {
+		flag.PrintDefaults()
 		log.Fatal("You must give a command to start !")
-	}
-	if parsedArgs.stdout == "" {
-		log.Fatal("stdout can't be nil !")
 	}
 	if parsedArgs.logRotation != "minutely" && parsedArgs.logRotation != "hourly" &&
 		parsedArgs.logRotation != "daily" && parsedArgs.logRotation != "weekly" {
+		flag.PrintDefaults()
 		log.Fatal("logRotation has to be minutely, hourly, daily or weekly !")
 	}
 	if parsedArgs.watchPort > 0 && parsedArgs.httpHook == "" {
+		flag.PrintDefaults()
 		log.Fatal("If you specify a port, you have to specify a http hook !")
 	}
 	if parsedArgs.watchPort < 0 {
+		flag.PrintDefaults()
 		log.Fatal("watchPort can't be negative!")
 	}
 	if parsedArgs.userUID < 0 {
+		flag.PrintDefaults()
 		log.Fatal("userUID can't be negative!")
 	}
 
