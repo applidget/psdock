@@ -3,7 +3,9 @@ package psdock
 import (
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
+	"syscall"
 )
 
 //SetEnvVars sets the environment variables for the launched process
@@ -17,4 +19,36 @@ func SetEnvVars(c *exec.Cmd, envVars string) {
 	for _, str := range strings.Split(envVars, " ") {
 		c.Env = append(c.Env, str)
 	}
+}
+
+//ChangeUser tries to change the current user to newUsername.
+func ChangeUser(newUsername string) error {
+	currentUser, err := user.Current()
+	if err != nil {
+		log.Print("Can't determine the current user !")
+		return err
+	}
+
+	//If newUserName is the current username, we return
+	if newUsername == currentUser.Username {
+		return nil
+	}
+
+	newUser, err := user.Lookup(newUsername)
+	if err != nil {
+		log.Print("Can't find the user", newUser)
+		return err
+	}
+
+	newUserUID, err := strconv.Atoi(newUser.Uid)
+	if err != nil {
+		log.Print("Can't determine the new user UID !")
+		return err
+	}
+
+	if err := syscall.Setuid(newUserUID); err != nil {
+		log.Print("Can't change the user!")
+		return err
+	}
+	return nil
 }

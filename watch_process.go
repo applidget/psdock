@@ -28,7 +28,7 @@ func ManageSignals(cmd *exec.Cmd, hook string) {
 
 //killProcess kills the process referenced by cmd.Process
 func killProcess(cmd *exec.Cmd) {
-	if err := cmd.Process.Kill(); err != nil {
+	if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
 		log.Print("Failed to kill the process !", err)
 	}
 }
@@ -38,7 +38,7 @@ func killProcess(cmd *exec.Cmd) {
 func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 	//We wait for the process to exist
 	for cmd.Process != nil {
-		time.Sleep(3 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	//We send the signal 0 to the process. It doesn't do anything, but we can still
@@ -71,7 +71,7 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 			sendRequest(hook, "running")
 			return
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(250 * time.Millisecond)
 	}
 }
 
