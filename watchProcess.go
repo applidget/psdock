@@ -23,7 +23,7 @@ func ManageSignals(cmd *exec.Cmd, hook string) {
 	defer killProcess(cmd)
 
 	//Send the request
-	sendRequest(hook, "crashed")
+	sendRequest(hook, "stopped")
 }
 
 //killProcess kills the process referenced by cmd.Process
