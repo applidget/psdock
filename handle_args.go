@@ -37,7 +37,7 @@ func ParseArguments() Arguments {
 	flag.StringVar(&parsedArgs.LogRotation, "log-rotation", "daily", "lifetime of a single log file.")
 	flag.StringVar(&parsedArgs.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
 	flag.StringVar(&parsedArgs.EnvVars, "envVars", "", "arguments passed to the launched command")
-	flag.IntVar(&parsedArgs.BindPort, "bind-port", 0, "port to be watched for binding by psdock")
+	flag.IntVar(&parsedArgs.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
 	flag.StringVar(&parsedArgs.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
 
 	//Retrieve the name of the current user. Will be used as a default value for user-name
@@ -45,7 +45,7 @@ func ParseArguments() Arguments {
 	if err != nil {
 		log.Fatal(err)
 	}
-	flag.StringVar(&parsedArgs.UserName, "-user-name", user.Username, "name of the user launching the process")
+	flag.StringVar(&parsedArgs.UserName, "user-name", user.Username, "name of the user launching the process")
 
 	flag.Parse()
 	//The user has to specify a process to run
