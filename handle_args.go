@@ -32,19 +32,29 @@ type arguments struct {
 func ParseArguments() arguments {
 	parsedArgs := arguments{}
 
-	flag.StringVar(&parsedArgs.command, "-process", "", "process to be executed by psdock")
-	flag.StringVar(&parsedArgs.stdout, "-stdout", "os.Stdout", "redirection path for the stdout/stderr of the launched process")
-	flag.StringVar(&parsedArgs.logRotation, "-log-rotation", "daily", "lifetime of a single log file.")
-	flag.StringVar(&parsedArgs.logPrefix, "-log-prefix", "", "prefix for logging the output of the launched process")
-	flag.StringVar(&parsedArgs.envVars, "-envVars", "", "arguments passed to the launched command")
-	flag.IntVar(&parsedArgs.bindPort, "-bind-port", 0, "port to be watched for binding by psdock")
-	flag.StringVar(&parsedArgs.webHook, "-web-hook", "", "hook triggered by psdock in case of special events")
+	flag.StringVar(&parsedArgs.command, "process", "", "process to be executed by psdock")
+	flag.StringVar(&parsedArgs.stdout, "stdout", "os.Stdout", "redirection path for the stdout/stderr of the launched process")
+	flag.StringVar(&parsedArgs.logRotation, "log-rotation", "daily", "lifetime of a single log file.")
+	flag.StringVar(&parsedArgs.logPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
+	flag.StringVar(&parsedArgs.envVars, "envVars", "", "arguments passed to the launched command")
+	flag.IntVar(&parsedArgs.bindPort, "bind-port", 0, "port to be watched for binding by psdock")
+	flag.StringVar(&parsedArgs.webHook, "web-hook", "", "hook triggered by psdock in case of special events")
 
+	//Retrieve the name of the current user. Will be used as a default value for user-name
+	user, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	flag.StringVar(&parsedArgs.userName, "-user-name", user.Username, "name of the user launching the process")
+
+	flag.Parse()
 	//The user has to specify a process to run
 	if parsedArgs.command == "" {
 		flag.PrintDefaults()
 		log.Fatal("You must provide a process to run!")
 	}
+
+	//Split the command given in process name & arguments
 	commandSplited := strings.SplitAfterN(parsedArgs.command, " ", 2)
 	parsedArgs.command = commandSplited[0]
 	if len(commandSplited) == 1 {
@@ -52,14 +62,6 @@ func ParseArguments() arguments {
 	} else {
 		parsedArgs.args = commandSplited[1]
 	}
-	//Retrieve the name of the current user
-	user, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-	flag.StringVar(&parsedArgs.userName, "user-name", user.Username, "name of the user launching the process")
-
-	flag.Parse()
 
 	if parsedArgs.stdout == "" {
 		flag.PrintDefaults()
