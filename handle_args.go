@@ -45,10 +45,12 @@ func ParseArguments() arguments {
 		flag.PrintDefaults()
 		log.Fatal("You must give a command to start !")
 	}
+
 	if parsedArgs.stdout == "" {
 		flag.PrintDefaults()
 		log.Fatal("stdout can't be nil !")
 	}
+
 	if parsedArgs.logRotation != "minutely" && parsedArgs.logRotation != "hourly" &&
 		parsedArgs.logRotation != "daily" && parsedArgs.logRotation != "weekly" {
 		flag.PrintDefaults()
