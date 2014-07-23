@@ -23,7 +23,7 @@ func ManageSignals(cmd *exec.Cmd, hook string) {
 	defer killProcess(cmd)
 
 	//Send the request
-	sendRequest(hook, "stopped")
+	SendRequest(hook, "stopped")
 }
 
 //killProcess kills the process referenced by cmd.Process
@@ -52,11 +52,11 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 
 	//if bindPort is 0, we send a "running" message
 	if bindPort == 0 {
-		sendRequest(hook, "running")
+		SendRequest(hook, "running")
 		return
 	}
 	//if bindPort is not 0, we send a "started" message
-	sendRequest(hook, "started")
+	SendRequest(hook, "started")
 
 	//We wait for bindPort to be used, and then send a "running" message
 	for {
@@ -68,7 +68,7 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 		grepOut, _ := grepCmd.Output()
 
 		if len(grepOut) > 0 {
-			sendRequest(hook, "running")
+			SendRequest(hook, "running")
 			return
 		}
 		time.Sleep(250 * time.Millisecond)
@@ -77,7 +77,7 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 
 //sendRequest sends a http "PUT" request to hook. The message is of type json, and
 //is "{"ps":{"status":status}}
-func sendRequest(hook string, status string) {
+func SendRequest(hook string, status string) {
 	requestMessage := strings.Join([]string{"{\"ps\":{\"status\":", status, "}}"}, "")
 	request, err := http.NewRequest("PUT", hook, bytes.NewBufferString(requestMessage))
 	if err != nil {

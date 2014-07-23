@@ -1,9 +1,11 @@
 package psdock
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"os/user"
+	"strconv"
 	"strings"
 	"syscall"
 )
