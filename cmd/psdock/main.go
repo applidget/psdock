@@ -20,7 +20,13 @@ func main() {
 		log.Fatal(err)
 	}
 	//prepare the process
-	processCmd := exec.Command(arguments.Command, strings.Split(arguments.Args, " ")...)
+	var processCmd *exec.Cmd
+	if len(arguments.Args) > 0 {
+		processCmd = exec.Command(arguments.Command, strings.Split(arguments.Args, " ")...)
+	} else {
+		processCmd = exec.Command(arguments.Command)
+	}
+
 	if err := psdock.PrepareProcess(processCmd, arguments); err != nil {
 		log.Fatal(err)
 	}
@@ -31,11 +37,8 @@ func main() {
 	//Launch the process
 	go psdock.LaunchProcess(processCmd, arguments, statusChannel)
 
-	for { //TODO
-		code /*, err*/ := <-statusChannel
-		/*if err != nil {
-			log.Fatal(err)
-		}*/
+	for {
+		code := <-statusChannel
 		if code.Err != nil {
 			notifyOrFail(arguments.WebHook, "stopped")
 			log.Fatal(code.Err)
@@ -57,55 +60,3 @@ func notifyOrFail(hook, message string) {
 		log.Print(err)
 	}
 }
-
-/*func main() {
-	c := make(chan int, 1)
-	arguments, err := psdock.ParseArguments()
-	if err != nil {
-		log.Fatal(err)
-	}
-	//fmt.Printf("%+v", arguments)
-	triggerGiven := len(arguments.WebHook) > 0
-
-	//prepare the process
-	processCmd := exec.Command(arguments.Command, strings.Split(arguments.Args, " ")...)
-	psdock.SetEnvVars(processCmd, arguments.EnvVars)
-	if err = psdock.ChangeUser(arguments.UserName); err != nil {
-		log.Fatal(err)
-	}
-
-	//Set up monitoring
-	if triggerGiven {
-		go func() {
-			if err1 := psdock.MonitorStart(processCmd, arguments.WebHook, arguments.BindPort); err1 != nil {
-				log.Fatal(err1)
-			}
-			c <- 1
-		}()
-		//go psdock.ManageSignals(processCmd, arguments.WebHook)
-	}
-
-	//Start process
-	f, err := pty.Start(processCmd)
-	if err != nil {
-		log.Fatal("Was not able to start process", err)
-	}
-
-	//Will be replaced by a function dealing with logging
-	io.Copy(os.Stdout, f)
-
-	_ = <-c
-	fmt.Print("ended")
-	if err = processCmd.Wait(); err != nil {
-		log.Print(err)
-	}
-	//If we arrive here, that means the process exited by itself.
-	//We just signal it to the hook
-	if !triggerGiven {
-		return
-	}
-
-	if err = psdock.NotifyWebHook(arguments.WebHook, "stopped"); err != nil {
-		log.Print(err)
-	}
-}*/
