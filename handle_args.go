@@ -1,10 +1,9 @@
 package psdock
 
 import (
-	"flag"
-	"log"
-	"os/user"
 	"errors"
+	"flag"
+	"os/user"
 	"strings"
 )
 
@@ -30,7 +29,7 @@ type Arguments struct {
 }
 
 //ParseArguments parses command-line arguments and returns them in an arguments struct
-func ParseArguments() Arguments, error {
+func ParseArguments() (*Arguments, error) {
 	parsedArgs := Arguments{}
 
 	flag.StringVar(&parsedArgs.Command, "process", "", "process to be executed by psdock")
@@ -44,7 +43,7 @@ func ParseArguments() Arguments, error {
 	//Retrieve the name of the current user. Will be used as a default value for user-name
 	user, err := user.Current()
 	if err != nil {
-		return errors.New("Failed to retrieve the informations about the current user!\n"+err)
+		return nil, errors.New("Failed to retrieve the informations about the current user!\n" + err.Error())
 	}
 	flag.StringVar(&parsedArgs.UserName, "user-name", user.Username, "name of the user launching the process")
 
@@ -52,7 +51,7 @@ func ParseArguments() Arguments, error {
 	//The user has to specify a process to run
 	if parsedArgs.Command == "" {
 		flag.PrintDefaults()
-		return errors.New("You must specify a process to run")
+		return nil, errors.New("You must specify a process to run")
 	}
 
 	//Split the command given in process name & arguments
@@ -67,16 +66,16 @@ func ParseArguments() Arguments, error {
 	if parsedArgs.LogRotation != "minutely" && parsedArgs.LogRotation != "hourly" &&
 		parsedArgs.LogRotation != "daily" && parsedArgs.LogRotation != "weekly" {
 		flag.PrintDefaults()
-		return errors.New("logRotation has to be minutely, hourly, daily or weekly !")
+		return nil, errors.New("logRotation has to be minutely, hourly, daily or weekly !")
 	}
 	if parsedArgs.BindPort > 0 && parsedArgs.WebHook == "" {
 		flag.PrintDefaults()
-		return errors.New("If you specify a port, you have to specify a http hook !")
+		return nil, errors.New("If you specify a port, you have to specify a http hook !")
 	}
 	if parsedArgs.BindPort < 0 {
 		flag.PrintDefaults()
-		return errors.New("bindPort can't be negative!")
+		return nil, errors.New("bindPort can't be negative!")
 	}
 
-	return parsedArgs,nil
+	return &parsedArgs, nil
 }

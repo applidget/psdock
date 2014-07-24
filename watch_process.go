@@ -20,24 +20,31 @@ func ManageSignals(cmd *exec.Cmd, hook string) error {
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGALRM, syscall.SIGPIPE)
 	_ = <-c
 
+	var errorFromTerm *error
 	//We want to kill the process anyway, even if some errors occur when triggering the hook
-	defer terminateProcess(cmd)
+	defer terminateProcess(cmd, errorFromTerm)
 
 	//Send the request
-	SendRequest(hook, "stopped")
+	errorFromNotif := NotifyWebHook(hook, "stopped")
+	if *errorFromTerm != nil {
+		return *errorFromTerm
+	} else {
+		return errorFromNotif
+	}
 }
 
 //killProcess kills the process referenced by cmd.Process
-func terminateProcess(cmd *exec.Cmd) error {
+func terminateProcess(cmd *exec.Cmd, returnedError *error) {
 	if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
-		return errors.New("Failed to kill the process !\n"+err)
+		*returnedError = errors.New("Failed to kill the process !\n" + err.Error())
 	}
+	*returnedError = nil
 }
 
 //MonitorStart triggers the hook when the process starts. If bindPort != 0,
 //the trigger is also called when bindPort starts to be used.
 func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
-	const harmelessSignalIndex := 0
+	const harmelessSignalIndex int = 0
 	//We wait for the process to exist
 	for cmd.Process != nil {
 		time.Sleep(100 * time.Millisecond)
@@ -54,11 +61,11 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 
 	//if bindPort is 0, we send a "running" message
 	if bindPort == 0 {
-		SendRequest(hook, "running")
+		NotifyWebHook(hook, "running")
 		return
 	}
 	//if bindPort is not 0, we send a "started" message
-	SendRequest(hook, "started")
+	NotifyWebHook(hook, "started")
 
 	//We wait for bindPort to be used, and then send a "running" message
 	for {
@@ -70,26 +77,27 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 		grepOut, _ := grepCmd.Output()
 
 		if len(grepOut) > 0 {
-			SendRequest(hook, "running")
+			NotifyWebHook(hook, "running")
 			return
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
 }
 
-//sendRequest sends a http "PUT" request to hook. The message is of type json, and
+//NotifyWebHook sends a http "PUT" request to hook. The message is of type json, and
 //is "{"ps":{"status":status}}
 func NotifyWebHook(hook string, status string) error {
 	requestMessage := strings.Join([]string{"{\"ps\":{\"status\":", status, "}}"}, "")
 	request, err := http.NewRequest("PUT", hook, bytes.NewBufferString(requestMessage))
 	if err != nil {
-		return errors.New("Failed to contruct the HTTP request.\n"+err)
+		return errors.New("Failed to contruct the HTTP request.\n" + err.Error())
 	}
 	request.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
 
 	//Send the request
 	if _, err := client.Do(request); err != nil {
-		return errors.New("Was not able to send the request : "+request+"\n"+err)
+		return errors.New("Was not able to trigger the hook!\n" + err.Error())
 	}
+	return nil
 }

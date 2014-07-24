@@ -1,7 +1,7 @@
 package psdock
 
 import (
-	"log"
+	"errors"
 	"os"
 	"os/exec"
 	"os/user"
@@ -30,7 +30,7 @@ func SetEnvVars(c *exec.Cmd, envVars string) {
 func ChangeUser(newUsername string) error {
 	currentUser, err := user.Current()
 	if err != nil {
-		return errors.New("Can't determine the current user !\n" + err)
+		return errors.New("Can't determine the current user !\n" + err.Error())
 	}
 
 	//If newUserName is the current username, we return
@@ -40,16 +40,16 @@ func ChangeUser(newUsername string) error {
 
 	newUser, err := user.Lookup(newUsername)
 	if err != nil {
-		return errors.New("Can't find the user" + newUser + "!\n" + err)
+		return errors.New("Can't find the user" + newUsername + "!\n" + err.Error())
 	}
 
 	newUserUID, err := strconv.Atoi(newUser.Uid)
 	if err != nil {
-		return errors.New("Can't determine the new user UID !\n" + err)
+		return errors.New("Can't determine the new user UID !\n" + err.Error())
 	}
 
 	if err := syscall.Setuid(newUserUID); err != nil {
-		return errors.New("Can't change the user !\n" + err)
+		return errors.New("Can't change the user !\n" + err.Error())
 	}
 	return nil
 }

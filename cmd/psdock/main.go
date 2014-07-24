@@ -11,13 +11,16 @@ import (
 )
 
 func main() {
-	arguments := psdock.ParseArguments()
+	arguments, err := psdock.ParseArguments()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//prepare the process
 	processCmd := exec.Command(arguments.Command, strings.Split(arguments.Args, " ")...)
 	psdock.SetEnvVars(processCmd, arguments.EnvVars)
-	if err := psdock.ChangeUser(arguments.UserName); err != nil {
-		log.Fatal("Was not able to change the user!", err)
+	if err = psdock.ChangeUser(arguments.UserName); err != nil {
+		log.Fatal(err)
 	}
 	f, err := pty.Start(processCmd)
 	if err != nil {
@@ -29,10 +32,12 @@ func main() {
 	//Will be replaced by a function dealing with logging
 	io.Copy(os.Stdout, f)
 
-	if executionError := processCmd.Wait(); executionError != nil {
-		log.Print("The process did not work flawlessly : ", executionError)
+	if err = processCmd.Wait(); err != nil {
+		log.Print(err)
 	}
 	//If we arrive here, that means the process exited by itself.
 	//We just signal it to the hook
-	psdock.SendRequest(arguments.WebHook, "stopped")
+	if err = psdock.NotifyWebHook(arguments.WebHook, "stopped"); err != nil {
+		log.Print(err)
+	}
 }
