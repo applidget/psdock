@@ -36,7 +36,7 @@ func ParseArguments() (*Arguments, error) {
 	flag.StringVar(&parsedArgs.Stdout, "stdout", "os.Stdout", "redirection path for the stdout/stderr of the launched process")
 	flag.StringVar(&parsedArgs.LogRotation, "log-rotation", "daily", "lifetime of a single log file.")
 	flag.StringVar(&parsedArgs.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
-	flag.StringVar(&parsedArgs.EnvVars, "envVars", "", "arguments passed to the launched command")
+	flag.StringVar(&parsedArgs.EnvVars, "env-vars", "", "arguments passed to the launched command")
 	flag.IntVar(&parsedArgs.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
 	flag.StringVar(&parsedArgs.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
 
@@ -56,7 +56,7 @@ func ParseArguments() (*Arguments, error) {
 
 	//Split the command given in process name & arguments
 	commandSplited := strings.SplitAfterN(parsedArgs.Command, " ", 2)
-	parsedArgs.Command = commandSplited[0]
+	parsedArgs.Command = commandSplited[0][:len(commandSplited[0])-1] //drop the last char (' ')
 	if len(commandSplited) == 1 {
 		parsedArgs.Args = ""
 	} else {

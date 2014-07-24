@@ -10,12 +10,21 @@ import (
 	"syscall"
 )
 
+//PrepareProcess sets the environment variables & changes the user
+func PrepareProcess(cmd *exec.Cmd, arguments *Arguments) error {
+	setEnvVars(cmd, arguments.EnvVars)
+	if err := changeUser(arguments.UserName); err != nil {
+		return err
+	}
+	return nil
+}
+
 //SetEnvVars sets the environment variables for the launched process
 //Note:if we precise a variable already present in the user's environment,
 //the value will be the one we have given.
 //The $PATH variable is not empty by default. If we override it, the elements we
 //provide will be appended to the default $PATH (/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin)
-func SetEnvVars(c *exec.Cmd, envVars string) {
+func setEnvVars(c *exec.Cmd, envVars string) {
 	//We first have to manually copy all the current environment variables to c.Env
 	if len(envVars) == 0 {
 		return
@@ -27,7 +36,7 @@ func SetEnvVars(c *exec.Cmd, envVars string) {
 }
 
 //ChangeUser tries to change the current user to newUsername.
-func ChangeUser(newUsername string) error {
+func changeUser(newUsername string) error {
 	currentUser, err := user.Current()
 	if err != nil {
 		return errors.New("Can't determine the current user !\n" + err.Error())
