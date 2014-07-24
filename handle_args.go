@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os/user"
+	"errors"
 	"strings"
 )
 
@@ -29,7 +30,7 @@ type Arguments struct {
 }
 
 //ParseArguments parses command-line arguments and returns them in an arguments struct
-func ParseArguments() Arguments {
+func ParseArguments() Arguments, error {
 	parsedArgs := Arguments{}
 
 	flag.StringVar(&parsedArgs.Command, "process", "", "process to be executed by psdock")
@@ -43,7 +44,7 @@ func ParseArguments() Arguments {
 	//Retrieve the name of the current user. Will be used as a default value for user-name
 	user, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		return errors.New("Failed to retrieve the informations about the current user!\n"+err)
 	}
 	flag.StringVar(&parsedArgs.UserName, "user-name", user.Username, "name of the user launching the process")
 
@@ -51,7 +52,7 @@ func ParseArguments() Arguments {
 	//The user has to specify a process to run
 	if parsedArgs.Command == "" {
 		flag.PrintDefaults()
-		log.Fatal("You must provide a process to run!")
+		return errors.New("You must specify a process to run")
 	}
 
 	//Split the command given in process name & arguments
@@ -66,16 +67,16 @@ func ParseArguments() Arguments {
 	if parsedArgs.LogRotation != "minutely" && parsedArgs.LogRotation != "hourly" &&
 		parsedArgs.LogRotation != "daily" && parsedArgs.LogRotation != "weekly" {
 		flag.PrintDefaults()
-		log.Fatal("logRotation has to be minutely, hourly, daily or weekly !")
+		return errors.New("logRotation has to be minutely, hourly, daily or weekly !")
 	}
 	if parsedArgs.BindPort > 0 && parsedArgs.WebHook == "" {
 		flag.PrintDefaults()
-		log.Fatal("If you specify a port, you have to specify a http hook !")
+		return errors.New("If you specify a port, you have to specify a http hook !")
 	}
 	if parsedArgs.BindPort < 0 {
 		flag.PrintDefaults()
-		log.Fatal("bindPort can't be negative!")
+		return errors.New("bindPort can't be negative!")
 	}
 
-	return parsedArgs
+	return parsedArgs,nil
 }

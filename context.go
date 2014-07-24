@@ -17,6 +17,9 @@ import (
 //provide will be appended to the default $PATH (/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin)
 func SetEnvVars(c *exec.Cmd, envVars string) {
 	//We first have to manually copy all the current environment variables to c.Env
+	if len(envVars) == 0 {
+		return
+	}
 	c.Env = append(c.Env, os.Environ()...)
 	for _, str := range strings.Split(envVars, " ") {
 		c.Env = append(c.Env, str)
@@ -27,8 +30,7 @@ func SetEnvVars(c *exec.Cmd, envVars string) {
 func ChangeUser(newUsername string) error {
 	currentUser, err := user.Current()
 	if err != nil {
-		log.Print("Can't determine the current user !")
-		return err
+		return errors.New("Can't determine the current user !\n" + err)
 	}
 
 	//If newUserName is the current username, we return
@@ -38,19 +40,16 @@ func ChangeUser(newUsername string) error {
 
 	newUser, err := user.Lookup(newUsername)
 	if err != nil {
-		log.Print("Can't find the user", newUser)
-		return err
+		return errors.New("Can't find the user" + newUser + "!\n" + err)
 	}
 
 	newUserUID, err := strconv.Atoi(newUser.Uid)
 	if err != nil {
-		log.Print("Can't determine the new user UID !")
-		return err
+		return errors.New("Can't determine the new user UID !\n" + err)
 	}
 
 	if err := syscall.Setuid(newUserUID); err != nil {
-		log.Print("Can't change the user!")
-		return err
+		return errors.New("Can't change the user !\n" + err)
 	}
 	return nil
 }

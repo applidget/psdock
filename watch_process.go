@@ -2,6 +2,7 @@ package psdock
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -14,28 +15,29 @@ import (
 
 //ManageSignals awaits for incoming signals and triggers a http request when one
 //is received. Signals listened to are SIGINT, SIGQUIT, SIGTERM, SIGHUP, SIGALRM and SIGPIPE
-func ManageSignals(cmd *exec.Cmd, hook string) {
+func ManageSignals(cmd *exec.Cmd, hook string) error {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGALRM, syscall.SIGPIPE)
 	_ = <-c
 
 	//We want to kill the process anyway, even if some errors occur when triggering the hook
-	defer killProcess(cmd)
+	defer terminateProcess(cmd)
 
 	//Send the request
 	SendRequest(hook, "stopped")
 }
 
 //killProcess kills the process referenced by cmd.Process
-func killProcess(cmd *exec.Cmd) {
+func terminateProcess(cmd *exec.Cmd) error {
 	if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
-		log.Print("Failed to kill the process !", err)
+		return errors.New("Failed to kill the process !\n"+err)
 	}
 }
 
 //MonitorStart triggers the hook when the process starts. If bindPort != 0,
 //the trigger is also called when bindPort starts to be used.
 func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
+	const harmelessSignalIndex := 0
 	//We wait for the process to exist
 	for cmd.Process != nil {
 		time.Sleep(100 * time.Millisecond)
@@ -47,7 +49,7 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 	for err != nil {
 		log.Print("The process doesn't seem to be running")
 		time.Sleep(3 * time.Second)
-		err = cmd.Process.Signal(syscall.Signal(0))
+		err = cmd.Process.Signal(syscall.Signal(harmelessSignalIndex))
 	}
 
 	//if bindPort is 0, we send a "running" message
@@ -77,19 +79,17 @@ func MonitorStart(cmd *exec.Cmd, hook string, bindPort int) {
 
 //sendRequest sends a http "PUT" request to hook. The message is of type json, and
 //is "{"ps":{"status":status}}
-func SendRequest(hook string, status string) {
+func NotifyWebHook(hook string, status string) error {
 	requestMessage := strings.Join([]string{"{\"ps\":{\"status\":", status, "}}"}, "")
 	request, err := http.NewRequest("PUT", hook, bytes.NewBufferString(requestMessage))
 	if err != nil {
-		log.Print("Failed to contruct the HTTP request,", err)
-		return
+		return errors.New("Failed to contruct the HTTP request.\n"+err)
 	}
 	request.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
 
 	//Send the request
 	if _, err := client.Do(request); err != nil {
-		log.Print(err)
-		return
+		return errors.New("Was not able to send the request : "+request+"\n"+err)
 	}
 }
