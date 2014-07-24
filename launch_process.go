@@ -47,7 +47,7 @@ func LaunchProcess(cmd *exec.Cmd, arguments *Arguments, c chan CommData) {
 
 	//TO DELETE
 	//Will be replaced by a function dealing with logging
-	io.Copy(os.Stdout, f)
+	go io.Copy(os.Stdout, f)
 
 	startErr = ensureProcessIsStarted(cmd)
 	c <- CommData{Status: STARTED, Err: startErr}

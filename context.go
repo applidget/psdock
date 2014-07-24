@@ -19,7 +19,7 @@ func PrepareProcess(cmd *exec.Cmd, arguments *Arguments) error {
 	return nil
 }
 
-//SetEnvVars sets the environment variables for the launched process
+//setEnvVars sets the environment variables for the launched process
 //Note:if we precise a variable already present in the user's environment,
 //the value will be the one we have given.
 //The $PATH variable is not empty by default. If we override it, the elements we
@@ -35,7 +35,7 @@ func setEnvVars(c *exec.Cmd, envVars string) {
 	}
 }
 
-//ChangeUser tries to change the current user to newUsername.
+//changeUser tries to change the current user to newUsername.
 func changeUser(newUsername string) error {
 	currentUser, err := user.Current()
 	if err != nil {

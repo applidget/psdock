@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/applidget/psdock"
 	"log"
 	"os/exec"
@@ -8,13 +9,15 @@ import (
 	"time"
 )
 
+func useless() {
+	fmt.Printf("TODELETE")
+}
 func main() {
 	statusChannel := make(chan psdock.CommData, 1)
 	arguments, err := psdock.ParseArguments()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	//prepare the process
 	processCmd := exec.Command(arguments.Command, strings.Split(arguments.Args, " ")...)
 	if err := psdock.PrepareProcess(processCmd, arguments); err != nil {
