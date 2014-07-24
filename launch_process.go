@@ -27,7 +27,7 @@ func ManageSignals(cmd *exec.Cmd, c chan CommData) {
 	c <- CommData{Status: STOPPED, Err: termErr}
 }
 
-//killProcess kills the process referenced by cmd.Process
+//terminateProcess kills the process referenced by cmd.Process
 func terminateProcess(cmd *exec.Cmd) error {
 	if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
 		return errors.New("Failed to kill the process !\n" + err.Error())

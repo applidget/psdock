@@ -23,7 +23,7 @@ func PrepareProcess(cmd *exec.Cmd, arguments *Arguments) error {
 //Note:if we precise a variable already present in the user's environment,
 //the value will be the one we have given.
 //The $PATH variable is not empty by default. If we override it, the elements we
-//provide will be appended to the default $PATH (/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin)
+//provide will be appended to the existing $PATH
 func setEnvVars(c *exec.Cmd, envVars string) {
 	//We first have to manually copy all the current environment variables to c.Env
 	if len(envVars) == 0 {

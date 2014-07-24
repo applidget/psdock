@@ -6,12 +6,13 @@ import (
 	"log"
 	"os/exec"
 	"strings"
-	"time"
+	//"time"
 )
 
 func useless() {
 	fmt.Printf("TODELETE")
 }
+
 func main() {
 	statusChannel := make(chan psdock.CommData, 1)
 	arguments, err := psdock.ParseArguments()
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	//Set up signal monitoring
-	//go psdock.ManageSignals(processCmd, arguments.WebHook, statusChannel)
+	go psdock.ManageSignals(processCmd, statusChannel)
 
 	//Launch the process
 	go psdock.LaunchProcess(processCmd, arguments, statusChannel)
@@ -36,6 +37,7 @@ func main() {
 			log.Fatal(err)
 		}*/
 		if code.Err != nil {
+			notifyOrFail(arguments.WebHook, "stopped")
 			log.Fatal(code.Err)
 		}
 		switch code.Status {
@@ -45,7 +47,6 @@ func main() {
 			notifyOrFail(arguments.WebHook, "running")
 		case psdock.STOPPED:
 			notifyOrFail(arguments.WebHook, "stopped")
-			time.Sleep(time.Second * 2) //in order to have time to trigger the hook
 			return
 		}
 	}
