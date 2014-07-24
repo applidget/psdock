@@ -56,10 +56,11 @@ func ParseArguments() (*Arguments, error) {
 
 	//Split the command given in process name & arguments
 	commandSplited := strings.SplitAfterN(parsedArgs.Command, " ", 2)
-	parsedArgs.Command = commandSplited[0][:len(commandSplited[0])-1] //drop the last char (' ')
 	if len(commandSplited) == 1 {
+		parsedArgs.Command = commandSplited[0]
 		parsedArgs.Args = ""
 	} else {
+		parsedArgs.Command = commandSplited[0][:len(commandSplited[0])-1] //drop the last char (' ')
 		parsedArgs.Args = commandSplited[1]
 	}
 
