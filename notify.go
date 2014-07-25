@@ -23,9 +23,9 @@ func NotifyWebHook(hook string, status string) error {
 
 	//Send the request
 	resp, err := client.Do(request)
+	defer resp.Body.Close()
 	if err != nil {
 		return errors.New("Was not able to trigger the hook!\n" + err.Error())
 	}
-	defer resp.Body.Close()
 	return nil
 }
