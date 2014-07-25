@@ -2,8 +2,9 @@ package psdock
 
 import (
 	"errors"
-	//"fmt"
+	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,11 +18,13 @@ func redirectIO(cmd *exec.Cmd, f *os.File, stdout string, logRotation string, er
 	if stdout == "os.Stdout" {
 		w = os.Stdout
 	} else {
-		parsedStdout := strings.Split(stdout, ":")
-		prefix := parsedStdout[0]
+		parsedStdout := strings.SplitAfterN(stdout, ":", 2)
+		prefix := parsedStdout[0][:len(parsedStdout[0])-1]
+
 		if prefix == "" {
 			errorChannel <- ProcessStatus{Status: -1, Err: errors.New("Stdout given not supported")}
 		}
+
 		if prefix == "file" {
 			internalChannel := make(chan error, 1)
 			go manageLogRotation(&w, parsedStdout[1][1:], logRotation, internalChannel)
@@ -29,7 +32,11 @@ func redirectIO(cmd *exec.Cmd, f *os.File, stdout string, logRotation string, er
 				errorChannel <- ProcessStatus{Status: -1, Err: err}
 			}
 		} else if prefix == "tcp" {
-			//TDB
+			conn, err := net.Dial("tcp", parsedStdout[1][2:])
+			w = conn
+			if err != nil {
+				errorChannel <- ProcessStatus{Status: -1, Err: err}
+			}
 		}
 	}
 	io.Copy(w, f)
