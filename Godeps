@@ -1,0 +1,11 @@
+{
+	"ImportPath": "github.com/applidget/psdock",
+	"GoVersion": "go1.3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/kr/pty",
+			"Comment": "release.r56-19-g67e2db2",
+			"Rev": "67e2db24c831afa6c64fc17b4a143390674365ef"
+		}
+	]
+}
