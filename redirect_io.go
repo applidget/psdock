@@ -6,7 +6,12 @@ import (
 	"os/exec"
 )
 
-func redirectIO(cmd *exec.Cmd, f *os.File) {
-	var w io.Writer = os.Stdout
+func redirectIO(cmd *exec.Cmd, f *os.File, stdout string) {
+	go io.Copy(f, os.Stdin)
+	var w io.Writer
+
+	if stdout == "os.Stdout" {
+		w = os.Stdout
+	}
 	io.Copy(w, f)
 }
