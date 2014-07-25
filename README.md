@@ -4,7 +4,8 @@
 A simple tool to launch and monitor processes.
 
 **Install :**
-
+  
+  
 1) Make sure $GOPATH/bin is in your path and install godep
 ````go get github.com/kr/godep
 export PATH=$PATH:$GOPATH/bin````  
@@ -15,9 +16,9 @@ export PATH=$PATH:$GOPATH/bin````
 godep go build
 godep go install````  
 4) Build psdock  
-`make`
-psdock is now installed in $GOPATH/bin
-
+`make`  
+  
+  
 **Usage :**
 
 Example :
@@ -31,5 +32,5 @@ Flags :
   * --log-prefix : prefix for logging the output of the launched process  
   * --env-vars : arguments passed to the launched command. They have to be passed as *"KEY1=value1 KEY2=value2"*.  
   * --bind-port : port to be watched for binding by psdock  
-  --web-hook : hook triggered by psdock in case of special events  
+  * --web-hook : hook triggered by psdock in case of special events  
 
