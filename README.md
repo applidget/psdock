@@ -5,7 +5,7 @@ A simple tool to launch and monitor processes.
 
 **Install :**
 
-1) Make sure $GOPATH/bin is in your path and install godep
+1) Make sure $GOPATH/bin is in your path and install godep  
 `go get github.com/kr/godep
 export PATH=$PATH:$GOPATH/bin`  
 2) Install psdock  
