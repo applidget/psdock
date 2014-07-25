@@ -1,19 +1,17 @@
 package psdock
 
 import (
-	"bufio"
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 )
 
-func redirectIO(cmd *exec.Cmd, f *os.File) {
+func redirectIO(cmd *exec.Cmd, f *os.File, stdout string) {
 	go io.Copy(f, os.Stdin)
-	scanner := bufio.NewScanner(f)
-	//_ = scanner.Scan()
-	for scanner.Scan() {
-		io.Copy(os.Stdout, strings.NewReader(scanner.Text()))
+	var w io.Writer
+
+	if stdout == "os.Stdout" {
+		w = os.Stdout
 	}
-	//io.Copy(os.Stdout, f)
+	io.Copy(w, f)
 }

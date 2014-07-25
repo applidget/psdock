@@ -45,7 +45,7 @@ func LaunchProcess(cmd *exec.Cmd, Config *Config, c chan ProcessStatus) {
 	}
 
 	//Set up IO redirection
-	go redirectIO(cmd, f)
+	go redirectIO(cmd, f, Config.Stdout)
 
 	startErr = ensureProcessIsStarted(cmd)
 	c <- ProcessStatus{Status: PROCESS_STARTED, Err: startErr}
