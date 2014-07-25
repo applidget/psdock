@@ -3,7 +3,6 @@ package psdock
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"os/user"
 	"strings"
 )
@@ -64,7 +63,6 @@ func ParseConfig() (*Config, error) {
 		parsedConfig.Command = commandSplited[0][:len(commandSplited[0])-1] //drop the last char (' ')
 		parsedConfig.Args = commandSplited[1]
 	}
-	fmt.Println(parsedConfig.Args)
 
 	if parsedConfig.LogRotation != "minutely" && parsedConfig.LogRotation != "hourly" &&
 		parsedConfig.LogRotation != "daily" && parsedConfig.LogRotation != "weekly" {

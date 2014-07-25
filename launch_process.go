@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"github.com/kr/pty"
-	//"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -45,7 +44,7 @@ func LaunchProcess(cmd *exec.Cmd, Config *Config, c chan ProcessStatus) {
 	}
 
 	//Set up IO redirection
-	go redirectIO(cmd, f, Config.Stdout)
+	go redirectIO(cmd, f, Config.Stdout, Config.LogRotation, c)
 
 	startErr = ensureProcessIsStarted(cmd)
 	c <- ProcessStatus{Status: PROCESS_STARTED, Err: startErr}
