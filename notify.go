@@ -13,7 +13,7 @@ func NotifyWebHook(hook string, status string) error {
 	if hook == "" {
 		return nil
 	}
-	requestMessage := strings.Join([]string{"{\"ps\":{\"status\":", status, "}}"}, "")
+	requestMessage := strings.Join([]string{`{"ps":{"status":`, status, `}}`}, "")
 	request, err := http.NewRequest("PUT", hook, bytes.NewBufferString(requestMessage))
 	if err != nil {
 		return errors.New("Failed to contruct the HTTP request.\n" + err.Error())
@@ -26,6 +26,6 @@ func NotifyWebHook(hook string, status string) error {
 	if err != nil {
 		return errors.New("Was not able to trigger the hook!\n" + err.Error())
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 	return nil
 }

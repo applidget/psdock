@@ -2,7 +2,6 @@ package psdock
 
 import (
 	"errors"
-	"os"
 	"os/exec"
 	"os/user"
 	"strconv"
@@ -11,9 +10,9 @@ import (
 )
 
 //PrepareProcess sets the environment variables & changes the user
-func PrepareProcess(cmd *exec.Cmd, arguments *Arguments) error {
-	setEnvVars(cmd, arguments.EnvVars)
-	if err := changeUser(arguments.UserName); err != nil {
+func PrepareProcessEnv(cmd *exec.Cmd, Config *Config) error {
+	setEnvVars(cmd, Config.EnvVars)
+	if err := changeUser(Config.UserName); err != nil {
 		return err
 	}
 	return nil
@@ -29,7 +28,9 @@ func setEnvVars(c *exec.Cmd, envVars string) {
 	if len(envVars) == 0 {
 		return
 	}
-	c.Env = append(c.Env, os.Environ()...)
+	//Uncomment the line below to automatically export the current env vars to the
+	//child process context
+	//c.Env = append(c.Env, os.Environ()...)
 	for _, str := range strings.Split(envVars, " ") {
 		c.Env = append(c.Env, str)
 	}

@@ -1,33 +1,27 @@
 package main
 
 import (
-	"fmt"
 	"github.com/applidget/psdock"
 	"log"
 	"os/exec"
 	"strings"
-	//"time"
 )
 
-func useless() {
-	fmt.Printf("TODELETE")
-}
-
 func main() {
-	statusChannel := make(chan psdock.CommData, 1)
-	arguments, err := psdock.ParseArguments()
+	statusChannel := make(chan psdock.ProcessStatus, 1)
+	Config, err := psdock.ParseConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 	//prepare the process
 	var processCmd *exec.Cmd
-	if len(arguments.Args) > 0 {
-		processCmd = exec.Command(arguments.Command, strings.Split(arguments.Args, " ")...)
+	if len(Config.Args) > 0 {
+		processCmd = exec.Command(Config.Command, strings.Split(Config.Args, " ")...)
 	} else {
-		processCmd = exec.Command(arguments.Command)
+		processCmd = exec.Command(Config.Command)
 	}
 
-	if err := psdock.PrepareProcess(processCmd, arguments); err != nil {
+	if err := psdock.PrepareProcessEnv(processCmd, Config); err != nil {
 		log.Fatal(err)
 	}
 
@@ -35,27 +29,27 @@ func main() {
 	go psdock.ManageSignals(processCmd, statusChannel)
 
 	//Launch the process
-	go psdock.LaunchProcess(processCmd, arguments, statusChannel)
+	go psdock.LaunchProcess(processCmd, Config, statusChannel)
 
 	for {
 		code := <-statusChannel
 		if code.Err != nil {
-			notifyOrFail(arguments.WebHook, "stopped")
+			notifyWebHook(Config.WebHook, "stopped")
 			log.Fatal(code.Err)
 		}
 		switch code.Status {
-		case psdock.STARTED:
-			notifyOrFail(arguments.WebHook, "started")
-		case psdock.RUNNING:
-			notifyOrFail(arguments.WebHook, "running")
-		case psdock.STOPPED:
-			notifyOrFail(arguments.WebHook, "stopped")
+		case psdock.PROCESS_STARTED:
+			notifyWebHook(Config.WebHook, "started")
+		case psdock.PROCESS_RUNNING:
+			notifyWebHook(Config.WebHook, "running")
+		case psdock.PROCESS_STOPPED:
+			notifyWebHook(Config.WebHook, "stopped")
 			return
 		}
 	}
 }
 
-func notifyOrFail(hook, message string) {
+func notifyWebHook(hook, message string) {
 	if err := psdock.NotifyWebHook(hook, message); err != nil {
 		log.Print(err)
 	}

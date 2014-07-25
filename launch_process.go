@@ -3,9 +3,7 @@ package psdock
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/kr/pty"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -15,7 +13,7 @@ import (
 
 //ManageSignals awaits for incoming signals and triggers a http request when one
 //is received. Signals listened to are SIGINT, SIGQUIT, SIGTERM, SIGHUP, SIGALRM and SIGPIPE
-func ManageSignals(cmd *exec.Cmd, c chan CommData) {
+func ManageSignals(cmd *exec.Cmd, c chan ProcessStatus) {
 	signalChannel := make(chan os.Signal)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGALRM, syscall.SIGPIPE)
 	_ = <-signalChannel
@@ -24,7 +22,7 @@ func ManageSignals(cmd *exec.Cmd, c chan CommData) {
 	termErr := terminateProcess(cmd)
 
 	//Send the request
-	c <- CommData{Status: STOPPED, Err: termErr}
+	c <- ProcessStatus{Status: PROCESS_STOPPED, Err: termErr}
 }
 
 //terminateProcess kills the process referenced by cmd.Process
@@ -37,50 +35,42 @@ func terminateProcess(cmd *exec.Cmd) error {
 
 //MonitorStart triggers the hook when the process starts. If bindPort != 0,
 //the trigger is also called when bindPort starts to be used.
-func LaunchProcess(cmd *exec.Cmd, arguments *Arguments, c chan CommData) {
+func LaunchProcess(cmd *exec.Cmd, Config *Config, c chan ProcessStatus) {
 	//We start the process
 	f, startErr := pty.Start(cmd)
 	if startErr != nil {
-		c <- CommData{Status: -1, Err: startErr}
+		c <- ProcessStatus{Status: -1, Err: startErr}
 		return
 	}
 
 	//TO DELETE
 	//Will be replaced by a function dealing with logging
-	go io.Copy(os.Stdout, f)
+	go redirectIO(cmd, f)
+	//go io.Copy(os.Stdout, f)
 
 	startErr = ensureProcessIsStarted(cmd)
-	c <- CommData{Status: STARTED, Err: startErr}
+	c <- ProcessStatus{Status: PROCESS_STARTED, Err: startErr}
 
-	runErr := ensureProcessIsRunning(cmd, arguments.BindPort)
-	c <- CommData{Status: RUNNING, Err: runErr}
+	runErr := ensureProcessIsRunning(cmd, Config.BindPort)
+	c <- ProcessStatus{Status: PROCESS_RUNNING, Err: runErr}
 
 	//We wait for the process to end
 	runErr = cmd.Wait()
 	if runErr != nil {
-		c <- CommData{Status: -1, Err: runErr}
+		c <- ProcessStatus{Status: -1, Err: runErr}
 		return
 	}
 	//If we arrive here, the process ended. We send that info
-	c <- CommData{Status: STOPPED, Err: runErr}
+	c <- ProcessStatus{Status: PROCESS_STOPPED, Err: runErr}
 }
 
 //ensureProcessIsStarted returns only after cmd.Process is started
 func ensureProcessIsStarted(cmd *exec.Cmd) error {
-	const harmelessSignalIndex int = 0
-	//We wait for the process to exist
+	//We wait for the process to start
 	for cmd.Process == nil {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	//We send the signal 0 to the process. It doesn't do anything, but we can still
-	//check the error returned by Process.Signal. If it is nil, the process is running
-	err := cmd.Process.Signal(syscall.Signal(harmelessSignalIndex))
-	for err != nil {
-		fmt.Print("The process doesn't seem to be running")
-		time.Sleep(3 * time.Second)
-		err = cmd.Process.Signal(syscall.Signal(harmelessSignalIndex))
-	}
 	return nil
 }
 
