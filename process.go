@@ -155,7 +155,10 @@ func (p *Process) Start(c chan string) error {
 		p.notifyStatusChanged()
 		c <- p.Status
 
-		cmd.Wait()
+		err = cmd.Wait()
+		if err != nil {
+			panic(err)
+		}
 
 		//p has stopped
 		p.restoreStdin()
