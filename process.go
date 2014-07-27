@@ -73,10 +73,7 @@ func (p *Process) isStarted() bool {
 }
 
 func (p *Process) isRunning() bool {
-	if p.isStarted && p.Conf.BindPort == 0 {
-		return true
-	}
-
+	return p.isStarted() && p.hasBoundPort()
 }
 
 func (p *Process) hasBoundPort() bool {
@@ -151,14 +148,16 @@ func (p *Process) Start(c chan string) error {
 		p.notifyStatusChanged()
 		c <- p.Status
 
-		for p.hasBoundPort() == false {
-			time.Sleep(250 * time.Millisecond)
+		for p.isRunning() == false {
+			time.Sleep(100 * time.Millisecond)
 		}
 		p.Status = PROCESS_RUNNING
 		p.notifyStatusChanged()
 		c <- p.Status
 
 		cmd.Wait()
+
+		//p has stopped
 		p.restoreStdin()
 		p.Status = PROCESS_STOPPED
 		p.notifyStatusChanged()
