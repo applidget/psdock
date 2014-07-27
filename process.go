@@ -92,15 +92,15 @@ func (p *Process) hasBoundPort() bool {
 }
 
 func (p *Process) redirectStdin() {
-
+	//TODO, will need to store stdin old state in the Process struct
 }
 
 func (p *Process) restoreStdin() {
-
+	//TODO
 }
 
 func (p *Process) redirectStdout() {
-
+	//TODO, get inspired by parklog
 }
 
 func (p *Process) notifyStatusChanged() err {
@@ -157,6 +157,7 @@ func (p *Process) Start(c chan string) error {
 
 		err = cmd.Wait()
 		if err != nil {
+			p.restoreStdin()
 			panic(err)
 		}
 
