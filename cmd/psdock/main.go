@@ -7,6 +7,35 @@ import (
 	"strings"
 )
 
+/*aletrnative main using the process type */
+
+func main() {
+	conf, err := psdock.ParseConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ps := psdock.NewProcess(conf)
+	ps.setUser()
+	ps.setEnvVars()
+
+	c := make(chan string, 1)
+	ps.Start(c)
+
+	for {
+		status := <-c
+		switch status {
+		case psdock.PROCESS_STARTED:
+			//setup catch signal here (before that we dont care)
+		case psdock.PROCESS_RUNNING:
+			//ok cool but probably nothing to do
+		case psdock.PROCESS_STOPPED:
+			//just break, the program will exit normally
+			break
+		}
+	}
+}
+
 func main() {
 	statusChannel := make(chan psdock.ProcessStatus, 1)
 	Config, err := psdock.ParseConfig()
