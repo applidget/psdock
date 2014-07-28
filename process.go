@@ -1,30 +1,44 @@
 package psdock
 
 import (
+	"bytes"
 	"code.google.com/p/go.crypto/ssh/terminal"
-	"exec"
+	"errors"
+	"github.com/kr/pty"
+	"log"
+	"net/http"
 	"os"
+	"os/exec"
+	"os/signal"
 	"os/user"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
 )
 
 type Process struct {
-	Cmd    *exec.Cmd
-	Conf   *Config
-	Pty    *os.File
-	Term   *terminal.Terminal
-	Status string
+	Cmd           *exec.Cmd
+	Conf          *Config
+	Pty           *os.File
+	Term          *terminal.Terminal
+	Status        int
+	StatusChannel chan ProcessStatus
 }
 
+//NewProcess creates a new struct of type *Process and returns its address
 func NewProcess(conf *Config) *Process {
 	var cmd *exec.Cmd
 	if len(conf.Args) > 0 {
-		cmd = exec.Command(conf.Command, strings.Split(con.Args, " ")...)
+		cmd = exec.Command(conf.Command, strings.Split(conf.Args, " ")...)
 	} else {
 		cmd = exec.Command(conf.Command)
 	}
-	return &Process{Cmd: cmd, Conf: conf}
+	newStatusChannel := make(chan ProcessStatus, 1)
+	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel}
 }
 
+//SetEnvVars sets the environment variables for the launched process
 func (p *Process) SetEnvVars() {
 	if len(p.Conf.EnvVars) == 0 {
 		return
@@ -34,36 +48,59 @@ func (p *Process) SetEnvVars() {
 	}
 }
 
-func (p *Process) SetUser() err {
+//ManageSignals awaits for incoming signals and triggers a http request when one
+//is received. Signals listened to are SIGINT, SIGQUIT, SIGTERM, SIGHUP, SIGALRM and SIGPIPE
+func (p *Process) ManageSignals() {
+	signalChannel := make(chan os.Signal)
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGALRM, syscall.SIGPIPE)
+	_ = <-signalChannel
+
+	//Terminate the process and notify
+	termErr := p.Terminate()
+	p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: termErr}
+}
+
+//SetUser tries to change the current user to newUsername
+func (p *Process) SetUser() error {
 	currentUser, err := user.Current()
 	if err != nil {
-		return err
+		return errors.New("Can't determine the current user !\n" + err.Error())
 	}
 
 	if p.Conf.UserName == currentUser.Username {
 		return nil
 	}
 
-	newUser, err := user.Lookup(newUsername)
+	newUser, err := user.Lookup(p.Conf.UserName)
 	if err != nil {
-		return err
+		return errors.New("Can't find the user" + p.Conf.UserName + "!\n" + err.Error())
 	}
 
 	newUserUID, err := strconv.Atoi(newUser.Uid)
 	if err != nil {
-		return err
+		return errors.New("Can't determine the new user UID !\n" + err.Error())
 	}
 
 	if err := syscall.Setuid(newUserUID); err != nil {
-		return err
+		return errors.New("Can't change the user !\n" + err.Error())
 	}
 
 	return nil
 }
 
-func (p *Process) Terminate() err {
-	if err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM); err != nil {
-		return err
+func (p *Process) Terminate() error {
+	var err error
+	for i := 0; i < 5; i++ {
+		if err = syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM); err == nil {
+			return nil
+		} else {
+			log.Print("Error while trying to kill the process" + err.Error())
+			log.Print("retrying...")
+		}
+	}
+	log.Print("Tried 5 times. Will now send a SIGKILL signal to child process")
+	if err = syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL); err != nil {
+		return errors.New("Can't send SIGKILL:" + err.Error())
 	}
 	return nil
 }
@@ -91,31 +128,41 @@ func (p *Process) hasBoundPort() bool {
 	return len(grepOut) > 0
 }
 
-func (p *Process) redirectStdin() {
+func (p *Process) redirectStdin() error {
 	//TODO, will need to store stdin old state in the Process struct
+	return nil
 }
 
-func (p *Process) restoreStdin() {
+func (p *Process) restoreStdin() error {
 	//TODO
+	return nil
 }
 
-func (p *Process) redirectStdout() {
+func (p *Process) redirectStdout() error {
 	//TODO, get inspired by parklog
+	return nil
 }
 
-func (p *Process) notifyStatusChanged() err {
+func (p *Process) NotifyStatusChanged() error {
 	if p.Conf.WebHook == "" {
 		return nil
 	}
-
+	statusStr := ""
+	if p.Status == PROCESS_STARTED {
+		statusStr = "started"
+	} else if p.Status == PROCESS_RUNNING {
+		statusStr = "running"
+	} else {
+		statusStr = "stopped"
+	}
 	body := `{
 							"ps":
-								{ "status":`, p.Status, `}
+								{ "status":` + statusStr + `}
 						}`
 
 	req, err := http.NewRequest("PUT", p.Conf.WebHook, bytes.NewBufferString(body))
 	if err != nil {
-		return err
+		return errors.New("Failed to construct the HTTP request" + err.Error())
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -124,38 +171,47 @@ func (p *Process) notifyStatusChanged() err {
 	resp, err := client.Do(req)
 	defer resp.Body.Close()
 	if err != nil {
-		return err
+		return errors.New("Was not able to trigger the hook!\n" + err.Error())
 	}
 	return nil
 }
 
-func (p *Process) Start(c chan string) error {
+func (p *Process) Start() error {
 	//We start the process
-	var err error
-	p.Pty, err = pty.Start(cmd)
-	if err != nil {
-		return err
+	var startErr error
+	p.Pty, startErr = pty.Start(p.Cmd)
+	if startErr != nil {
+		return startErr
 	}
 
 	go func() {
-		p.RedirectStdin()
-		p.RedirectStdou()
+		var err error
+		if err = p.redirectStdin(); err != nil {
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
+		if err = p.redirectStdout(); err != nil {
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
 
-		for p.isStarted() == false {
+		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
 		}
 		p.Status = PROCESS_STARTED
-		p.notifyStatusChanged()
-		c <- p.Status
+		if err = p.NotifyStatusChanged(); err != nil {
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
+		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
 
 		for p.isRunning() == false {
 			time.Sleep(100 * time.Millisecond)
 		}
 		p.Status = PROCESS_RUNNING
-		p.notifyStatusChanged()
-		c <- p.Status
+		if err = p.NotifyStatusChanged(); err != nil {
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
+		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
 
-		err = cmd.Wait()
+		err = p.Cmd.Wait()
 		if err != nil {
 			p.restoreStdin()
 			panic(err)
@@ -164,7 +220,11 @@ func (p *Process) Start(c chan string) error {
 		//p has stopped
 		p.restoreStdin()
 		p.Status = PROCESS_STOPPED
-		p.notifyStatusChanged()
-		c <- p.Status
+		if err = p.NotifyStatusChanged(); err != nil {
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
+		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
 	}()
+
+	return nil
 }
