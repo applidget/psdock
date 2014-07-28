@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -81,8 +82,26 @@ func (p *Process) manageLogRotation(filename string, c chan int) {
 		lifetime = time.Hour * 24 * 7
 	}
 	for {
-		newName = filename + "-" + string(time.Now().Format("2006-01-02-15-04"))
-		f, err := os.Create(newName)
+		if previousName == "" {
+			//We have to check if one of the files is a log whose start date is less than time.Now()-lifetime.
+			//If that's the case, we use that file
+			dirName := filepath.Dir(filename)
+			files, err := ioutil.ReadDir(dirName)
+			if err != nil {
+				log.Print(err)
+			}
+			var f *os.File
+			tNow := time.Now()
+			for _, fileinfo := range files {
+				if !fileinfo.IsDir() && filepath.Ext(fileinfo.Name()) == ".log" && recentEnough(fileinfo.Name(), tNow) {
+					newName = fileinfo.Name()
+					f, err = os.OpenFile(newName, os.RDWR|os.O_APPEND, 0660)
+				}
+			}
+		} else {
+			newName = filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
+			f, err = os.Create(newName)
+		}
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
@@ -127,4 +146,11 @@ func compressOldOutput(oldFile string) error {
 		return err
 	}
 	return nil
+}
+
+func recentEnough(path string, tNow time.Duration) bool {
+	lIndex := strings.LastIndex(path[:len(path)-5], ".")
+	dateOfPath := path[lIndex : len(path)-5]
+	//TODO
+	return false
 }
