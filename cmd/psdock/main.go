@@ -3,54 +3,45 @@ package main
 import (
 	"github.com/applidget/psdock"
 	"log"
-	"os/exec"
-	"strings"
 )
 
+/*aletrnative main using the process type */
+
 func main() {
-	statusChannel := make(chan psdock.ProcessStatus, 1)
-	Config, err := psdock.ParseConfig()
+	conf, err := psdock.ParseConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	//prepare the process
-	var processCmd *exec.Cmd
-	if len(Config.Args) > 0 {
-		processCmd = exec.Command(Config.Command, strings.Split(Config.Args, " ")...)
-	} else {
-		processCmd = exec.Command(Config.Command)
-	}
 
-	if err := psdock.PrepareProcessEnv(processCmd, Config); err != nil {
+	ps := psdock.NewProcess(conf)
+	if err = ps.SetUser(); err != nil {
+		log.Fatal(err)
+	}
+	ps.SetEnvVars()
+
+	if err = ps.Start(); err != nil {
 		log.Fatal(err)
 	}
 
-	//Set up signal monitoring
-	go psdock.ManageSignals(processCmd, statusChannel)
-
-	//Launch the process
-	go psdock.LaunchProcess(processCmd, Config, statusChannel)
-
 	for {
-		code := <-statusChannel
-		if code.Err != nil {
-			notifyWebHook(Config.WebHook, "stopped")
-			log.Fatal(code.Err)
-		}
-		switch code.Status {
-		case psdock.PROCESS_STARTED:
-			notifyWebHook(Config.WebHook, "started")
-		case psdock.PROCESS_RUNNING:
-			notifyWebHook(Config.WebHook, "running")
-		case psdock.PROCESS_STOPPED:
-			notifyWebHook(Config.WebHook, "stopped")
+		status := <-ps.StatusChannel
+		if status.Err != nil {
+			//Should an error occur, we want to kill the process
+			ps.Status = psdock.PROCESS_STOPPED
+			ps.NotifyStatusChanged()
+			termErr := ps.Terminate(5)
+			log.Println(status.Err)
+			log.Println(termErr)
 			return
 		}
-	}
-}
+		switch status.Status {
+		case psdock.PROCESS_STARTED:
+			go psdock.ManageSignals(ps)
+		case psdock.PROCESS_RUNNING:
 
-func notifyWebHook(hook, message string) {
-	if err := psdock.NotifyWebHook(hook, message); err != nil {
-		log.Print(err)
+		case psdock.PROCESS_STOPPED:
+			//If we arrive here, process is already stopped, and this has been notified
+			return
+		}
 	}
 }
