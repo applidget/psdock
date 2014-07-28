@@ -4,7 +4,6 @@ import (
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -43,8 +42,7 @@ func (p *Process) redirectStdout() error {
 			return err
 		}
 		if url.Scheme == "file" {
-			c := make(chan int, 1)
-			go p.manageLogRotation(url.Host+url.Path, c)
+			go p.manageLogRotation(url.Host + url.Path)
 			//Wait for the file to be ready
 			time.Sleep(100 * time.Millisecond)
 		} else if url.Scheme == "tcp" {
@@ -67,7 +65,7 @@ func (p *Process) startCopy() {
 	p.startCopy()
 }
 
-func (p *Process) manageLogRotation(filename string, c chan int) {
+func (p *Process) manageLogRotation(filename string) {
 	var previousName, newName string
 	var lifetime time.Duration
 	switch p.Conf.LogRotation {
