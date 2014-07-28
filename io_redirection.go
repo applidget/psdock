@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/url"
 	"os"
 	"time"
@@ -43,6 +44,11 @@ func (p *Process) redirectStdout() error {
 			go p.manageLogRotation(url.Host + url.Path)
 			//Wait for the file to be ready
 			time.Sleep(100 * time.Millisecond)
+		} else if url.Scheme == "tcp" {
+			p.output, err = net.Dial("tcp", url.Host+url.Path)
+			if err != nil {
+				p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+			}
 		}
 	}
 	log.SetOutput(p.output)
