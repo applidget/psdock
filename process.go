@@ -25,6 +25,7 @@ type Process struct {
 	Status        int
 	StatusChannel chan ProcessStatus
 	oldTermState  *terminal.State
+	output        io.Writer
 }
 
 //NewProcess creates a new struct of type *Process and returns its address
@@ -111,33 +112,6 @@ func (p *Process) hasBoundPort() bool {
 	grepOut, _ := grepCmd.Output()
 
 	return len(grepOut) > 0
-}
-
-func (p *Process) redirectStdin() error {
-	var err error
-	p.oldTermState, err = terminal.MakeRaw(int(os.Stdin.Fd()))
-	if err != nil {
-		return errors.New("Can't redirect stdin:" + err.Error())
-	}
-	newTerminal := terminal.NewTerminal(os.Stdin, "")
-	cb := func(s string, i int, r rune) (string, int, bool) {
-		car := []byte{byte(r)}
-		newTerminal.Write(car)
-		return s, i, false
-	}
-	newTerminal.AutoCompleteCallback = cb
-	go io.Copy(p.Pty, os.Stdin)
-	return nil
-}
-
-func (p *Process) restoreStdin() error {
-	err := terminal.Restore(int(os.Stdin.Fd()), p.oldTermState)
-	return err
-}
-
-func (p *Process) redirectStdout() error {
-	go io.Copy(os.Stdout, p.Pty)
-	return nil
 }
 
 func (p *Process) NotifyStatusChanged() error {
