@@ -29,14 +29,14 @@ func main() {
 			//Should an error occur, we want to kill the process
 			ps.Status = psdock.PROCESS_STOPPED
 			ps.NotifyStatusChanged()
-			termErr := ps.Terminate()
+			termErr := ps.Terminate(5)
 			log.Println(status.Err)
 			log.Println(termErr)
 			return
 		}
 		switch status.Status {
 		case psdock.PROCESS_STARTED:
-			go ps.ManageSignals()
+			go psdock.ManageSignals(ps)
 		case psdock.PROCESS_RUNNING:
 
 		case psdock.PROCESS_STOPPED:

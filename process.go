@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"os/user"
 	"strconv"
 	"strings"
@@ -48,18 +47,6 @@ func (p *Process) SetEnvVars() {
 	}
 }
 
-//ManageSignals awaits for incoming signals and triggers a http request when one
-//is received. Signals listened to are SIGINT, SIGQUIT, SIGTERM, SIGHUP, SIGALRM and SIGPIPE
-func (p *Process) ManageSignals() {
-	signalChannel := make(chan os.Signal)
-	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGALRM, syscall.SIGPIPE)
-	_ = <-signalChannel
-
-	//Terminate the process and notify
-	termErr := p.Terminate()
-	p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: termErr}
-}
-
 //SetUser tries to change the current user to newUsername
 func (p *Process) SetUser() error {
 	currentUser, err := user.Current()
@@ -88,21 +75,16 @@ func (p *Process) SetUser() error {
 	return nil
 }
 
-func (p *Process) Terminate() error {
-	var err error
-	for i := 0; i < 5; i++ {
-		if err = syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM); err == nil {
+func (p *Process) Terminate(maxTryCount int) error {
+	if maxTryCount > 0 {
+		if err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM); err == nil {
 			return nil
-		} else {
-			log.Print("Error while trying to kill the process" + err.Error())
-			log.Print("retrying...")
 		}
+	} else {
+		return syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL)
 	}
-	log.Print("Tried 5 times. Will now send a SIGKILL signal to child process")
-	if err = syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL); err != nil {
-		return errors.New("Can't send SIGKILL:" + err.Error())
-	}
-	return nil
+	time.Sleep(100 * time.Millisecond)
+	return p.Terminate(maxTryCount - 1)
 }
 
 func (p *Process) isStarted() bool {
@@ -214,7 +196,9 @@ func (p *Process) Start() error {
 		err = p.Cmd.Wait()
 		if err != nil {
 			p.restoreStdin()
-			panic(err)
+			p.Status = PROCESS_STOPPED
+			p.NotifyStatusChanged()
+			log.Fatal(err)
 		}
 
 		//p has stopped
