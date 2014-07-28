@@ -25,7 +25,7 @@ type Process struct {
 	Status        int
 	StatusChannel chan ProcessStatus
 	oldTermState  *terminal.State
-	output        io.Writer
+	output        io.WriteCloser
 }
 
 //NewProcess creates a new struct of type *Process and returns its address
