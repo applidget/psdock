@@ -34,7 +34,6 @@ func (p *Process) restoreStdin() error {
 }
 
 func (p *Process) redirectStdout() error {
-	p.output = os.Stdout
 	if p.Conf.Stdout != "os.Stdout" {
 		url, err := url.Parse(p.Conf.Stdout)
 		if err != nil {
@@ -52,6 +51,7 @@ func (p *Process) redirectStdout() error {
 		}
 	}
 	log.SetOutput(p.output)
+	log.SetPrefix(p.Conf.LogPrefix)
 	go io.Copy(p.output, p.Pty)
 	return nil
 }

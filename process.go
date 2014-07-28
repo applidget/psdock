@@ -37,7 +37,7 @@ func NewProcess(conf *Config) *Process {
 		cmd = exec.Command(conf.Command)
 	}
 	newStatusChannel := make(chan ProcessStatus, 1)
-	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel}
+	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout}
 }
 
 //SetEnvVars sets the environment variables for the launched process
