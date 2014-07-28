@@ -5,6 +5,7 @@ import (
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"errors"
 	"github.com/kr/pty"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +24,7 @@ type Process struct {
 	Term          *terminal.Terminal
 	Status        int
 	StatusChannel chan ProcessStatus
+	oldTermState  *terminal.State
 }
 
 //NewProcess creates a new struct of type *Process and returns its address
@@ -111,17 +113,29 @@ func (p *Process) hasBoundPort() bool {
 }
 
 func (p *Process) redirectStdin() error {
-	//TODO, will need to store stdin old state in the Process struct
+	var err error
+	p.oldTermState, err = terminal.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		return errors.New("Can't redirect stdin:" + err.Error())
+	}
+	newTerminal := terminal.NewTerminal(os.Stdin, "")
+	cb := func(s string, i int, r rune) (string, int, bool) {
+		car := []byte{byte(r)}
+		newTerminal.Write(car)
+		return s, i, false
+	}
+	newTerminal.AutoCompleteCallback = cb
+	go io.Copy(p.Pty, os.Stdin)
 	return nil
 }
 
 func (p *Process) restoreStdin() error {
-	//TODO
-	return nil
+	err := terminal.Restore(int(os.Stdin.Fd()), p.oldTermState)
+	return err
 }
 
 func (p *Process) redirectStdout() error {
-	//TODO, get inspired by parklog
+	go io.Copy(os.Stdout, p.Pty)
 	return nil
 }
 
