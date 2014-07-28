@@ -198,7 +198,7 @@ func (p *Process) Start() error {
 		}
 		p.Status = PROCESS_STARTED
 		if err = p.NotifyStatusChanged(); err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
 
@@ -207,7 +207,7 @@ func (p *Process) Start() error {
 		}
 		p.Status = PROCESS_RUNNING
 		if err = p.NotifyStatusChanged(); err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
 
@@ -221,7 +221,7 @@ func (p *Process) Start() error {
 		p.restoreStdin()
 		p.Status = PROCESS_STOPPED
 		if err = p.NotifyStatusChanged(); err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
 	}()
