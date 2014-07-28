@@ -5,8 +5,6 @@ import (
 	"log"
 )
 
-/*aletrnative main using the process type */
-
 func main() {
 	conf, err := psdock.ParseConfig()
 	if err != nil {
