@@ -40,11 +40,9 @@ func NewProcess(conf *Config) *Process {
 }
 
 //SetEnvVars sets the environment variables for the launched process
+//If p.Conf.EnvVars is empty, we pass all the current env vars to the child
 func (p *Process) SetEnvVars() {
 	if len(p.Conf.EnvVars) == 0 {
-		//If we do not want to pass any env var to the child process, we still have
-		//to write something in p.Cmd.Env so that it is non-empty
-		p.Cmd.Env = append(p.Cmd.Env, " ")
 		return
 	}
 	for _, envVar := range strings.Split(p.Conf.EnvVars, ",") {
