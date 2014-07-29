@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/applidget/psdock"
 	"log"
 )
@@ -34,6 +35,7 @@ func main() {
 		}
 		switch status.Status {
 		case psdock.PROCESS_STARTED:
+			fmt.Println("STAAAAAARTED")
 			go psdock.ManageSignals(ps)
 		case psdock.PROCESS_RUNNING:
 
