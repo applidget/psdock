@@ -22,6 +22,7 @@ type Config struct {
 	Stdout      string
 	LogRotation string
 	LogPrefix   string
+	LogColor    string
 	EnvVars     string
 	BindPort    int
 	WebHook     string
@@ -29,13 +30,14 @@ type Config struct {
 }
 
 //ParseConfig parses command-line Config and returns them in an Config struct
-func ParseConfig() (*Config, error) {
+func ParseArgs() (*Config, error) {
 	parsedConfig := Config{}
 
 	flag.StringVar(&parsedConfig.Command, "process", "", "process to be executed by psdock")
 	flag.StringVar(&parsedConfig.Stdout, "stdout", "os.Stdout", "redirection path for the stdout/stderr of the launched process")
 	flag.StringVar(&parsedConfig.LogRotation, "log-rotation", "daily", "lifetime of a single log file.")
 	flag.StringVar(&parsedConfig.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
+	flag.StringVar(&parsedConfig.LogPrefix, "log-color", "", "color for logging the output of the launched process")
 	flag.StringVar(&parsedConfig.EnvVars, "env-vars", "", "Config passed to the launched command")
 	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")

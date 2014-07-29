@@ -20,9 +20,9 @@ import (
 type Process struct {
 	Cmd           *exec.Cmd
 	Conf          *Config
+	Notif         Notifier
 	Pty           *os.File
 	Term          *terminal.Terminal
-	Status        int
 	StatusChannel chan ProcessStatus
 	oldTermState  *terminal.State
 	output        io.WriteCloser
@@ -37,7 +37,7 @@ func NewProcess(conf *Config) *Process {
 		cmd = exec.Command(conf.Command)
 	}
 	newStatusChannel := make(chan ProcessStatus, 1)
-	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout}
+	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout, Notifier: Notifier{webHook: conf.WebHook}}
 }
 
 //SetEnvVars sets the environment variables for the launched process
@@ -97,14 +97,14 @@ func (p *Process) isStarted() bool {
 }
 
 func (p *Process) isRunning() bool {
-	return p.isStarted() && p.hasBoundPort()
+	if p.Conf.BindPort == 0 {
+		return p.isStarted()
+	} else {
+		return p.isStarted() && p.hasBoundPort()
+	}
 }
 
 func (p *Process) hasBoundPort() bool {
-	if p.Conf.BindPort == 0 {
-		return true
-	}
-
 	//We execute netstat -an | grep bindPort to find if bindPort is open
 	netstCmd := exec.Command("netstat", "-an")
 	grepCmd := exec.Command("grep", string(p.Conf.BindPort))
@@ -113,39 +113,6 @@ func (p *Process) hasBoundPort() bool {
 	grepOut, _ := grepCmd.Output()
 
 	return len(grepOut) > 0
-}
-
-func (p *Process) NotifyStatusChanged() error {
-	if p.Conf.WebHook == "" {
-		return nil
-	}
-	statusStr := ""
-	if p.Status == PROCESS_STARTED {
-		statusStr = "started"
-	} else if p.Status == PROCESS_RUNNING {
-		statusStr = "running"
-	} else {
-		statusStr = "stopped"
-	}
-	body := `{
-							"ps":
-								{ "status":` + statusStr + `}
-						}`
-
-	req, err := http.NewRequest("PUT", p.Conf.WebHook, bytes.NewBufferString(body))
-	if err != nil {
-		return errors.New("Failed to construct the HTTP request" + err.Error())
-	}
-
-	req.Header.Add("Content-Type", "application/json")
-	client := &http.Client{}
-
-	resp, err := client.Do(req)
-	defer resp.Body.Close()
-	if err != nil {
-		return errors.New("Was not able to trigger the hook!\n" + err.Error())
-	}
-	return nil
 }
 
 func (p *Process) Start() error {
@@ -168,8 +135,8 @@ func (p *Process) Start() error {
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
 		}
-		p.Status = PROCESS_STARTED
-		if err = p.NotifyStatusChanged(); err != nil {
+
+		if err = p.Notifier.Notify(PROCESS_STARTED); err != nil {
 			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
@@ -177,8 +144,8 @@ func (p *Process) Start() error {
 		for p.isRunning() == false {
 			time.Sleep(100 * time.Millisecond)
 		}
-		p.Status = PROCESS_RUNNING
-		if err = p.NotifyStatusChanged(); err != nil {
+
+		if err = p..Notifier.Notify(PROCESS_RUNNING); err != nil {
 			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
@@ -186,15 +153,13 @@ func (p *Process) Start() error {
 		err = p.Cmd.Wait()
 		if err != nil {
 			p.restoreStdin()
-			p.Status = PROCESS_STOPPED
-			p.NotifyStatusChanged()
+			p.Notifier.Notify(PROCESS_STOPPED)
 			log.Fatal(err)
 		}
 
 		//p has stopped
 		p.restoreStdin()
-		p.Status = PROCESS_STOPPED
-		if err = p.NotifyStatusChanged(); err != nil {
+		if err = p.Notifier.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}

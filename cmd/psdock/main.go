@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	conf, err := psdock.ParseConfig()
+	conf, err := psdock.ParseArgs()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,8 +25,7 @@ func main() {
 		status := <-ps.StatusChannel
 		if status.Err != nil {
 			//Should an error occur, we want to kill the process
-			ps.Status = psdock.PROCESS_STOPPED
-			ps.NotifyStatusChanged()
+			ps.Notifier.Notify(psdock.PROCESS_STOPPED)
 			termErr := ps.Terminate(5)
 			log.Println(status.Err)
 			log.Println(termErr)
