@@ -2,10 +2,7 @@ package psdock
 
 import (
 	"bufio"
-	"code.google.com/p/go.crypto/ssh/terminal"
 	"compress/gzip"
-	"errors"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -15,29 +12,6 @@ import (
 	"strings"
 	"time"
 )
-
-func (p *Process) redirectStdin() error {
-	var err error
-	p.oldTermState, err = terminal.MakeRaw(int(os.Stdin.Fd()))
-	if err != nil {
-		return errors.New("Can't redirect stdin:" + err.Error())
-	}
-	newTerminal := terminal.NewTerminal(os.Stdin, "")
-	cb := func(s string, i int, r rune) (string, int, bool) {
-		car := []byte{byte(r)}
-		newTerminal.Write(car)
-		return s, i, false
-	}
-	newTerminal.AutoCompleteCallback = cb
-
-	go io.Copy(p.Pty, os.Stdin)
-	return nil
-}
-
-func (p *Process) restoreStdin() error {
-	err := terminal.Restore(int(os.Stdin.Fd()), p.oldTermState)
-	return err
-}
 
 func (p *Process) redirectStdout() error {
 	if p.Conf.Stdout != "os.Stdout" {

@@ -25,7 +25,7 @@ func main() {
 		status := <-ps.StatusChannel
 		if status.Err != nil {
 			//Should an error occur, we want to kill the process
-			ps.Notifier.Notify(psdock.PROCESS_STOPPED)
+			ps.Notif.Notify(psdock.PROCESS_STOPPED)
 			termErr := ps.Terminate(5)
 			log.Println(status.Err)
 			log.Println(termErr)

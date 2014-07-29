@@ -22,8 +22,8 @@ type Process struct {
 	Notif         Notifier
 	Pty           *os.File
 	Term          *terminal.Terminal
+	stdinStruct   *stdin
 	StatusChannel chan ProcessStatus
-	oldTermState  *terminal.State
 	output        io.WriteCloser
 }
 
@@ -124,7 +124,8 @@ func (p *Process) Start() error {
 
 	go func() {
 		var err error
-		if err = p.redirectStdin(); err != nil {
+		p.stdinStruct, err = redirectStdin(os.Stdin, p.Pty)
+		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
 		if err = p.redirectStdout(); err != nil {
@@ -151,13 +152,13 @@ func (p *Process) Start() error {
 
 		err = p.Cmd.Wait()
 		if err != nil {
-			p.restoreStdin()
+			p.stdinStruct.restoreStdin()
 			p.Notif.Notify(PROCESS_STOPPED)
 			log.Fatal(err)
 		}
 
 		//p has stopped
-		p.restoreStdin()
+		p.stdinStruct.restoreStdin()
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
 		}
