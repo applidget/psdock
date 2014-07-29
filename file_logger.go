@@ -1,68 +1,41 @@
 package psdock
 
 import (
-	"bufio"
 	"compress/gzip"
 	"io/ioutil"
 	"log"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
-func (p *Process) redirectStdout() error {
-	if p.Conf.Stdout != "os.Stdout" {
-		url, err := url.Parse(p.Conf.Stdout)
-		if err != nil {
-			return err
-		}
-		if url.Scheme == "file" {
-			newFilename, err := p.openFirstOutputFile(url.Host + url.Path)
-			if err != nil {
-				return err
-			}
-			go p.manageLogRotation(url.Host+url.Path, newFilename)
-		} else if url.Scheme == "tcp" {
-			p.output, err = net.Dial("tcp", url.Host+url.Path)
-			if err != nil {
-				p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
-			}
-		}
-	}
-	go p.startCopy()
-	return nil
+type fileLogger struct {
+	log          Logger
+	previousName string
+	logRotation  string
+	filename     string
 }
 
-func (p *Process) startCopy() {
-	_, _ = p.output.Write([]byte(p.Conf.LogPrefix))
-	reader := bufio.NewReader(p.Pty)
-	for {
-		rune, _, _ := reader.ReadRune()
-		_, err := p.output.Write([]byte{byte(rune)})
-		if rune == '\n' {
-			_, _ = p.output.Write([]byte(p.Conf.LogPrefix))
-		}
-		if err != nil {
-			break
-		}
+func NewFileLogger(fName, prfx, lRotation string) (*fileLogger, error) {
+	result := fileLogger{filename: fName, log: Logger{prefix: prfx}, logRotation: lRotation}
+	err := result.openFirstOutputFile()
+	if err != nil {
+		return nil, err
 	}
-	//If we arrive here, the logger has created a new file, and it is assigned to p.output
-	//We start writing on the new p.output
-	p.startCopy()
+	go result.manageLogRotation()
+	return &result, nil
 }
 
 //openFirstOutputFile tries to open a file in order to redirect stdout. If a
-func (p *Process) openFirstOutputFile(filename string) (string, error) {
+func (flg *fileLogger) openFirstOutputFile() error {
 	//We have to check if one of the files is a log whose start date is less than time.Now()-lifetime.
 	//If that's the case, we use that file
-	lifetime := convertLogRToDuration(p.Conf.LogRotation)
-	dirName := filepath.Dir(filename)
+	lifetime := convertLogRToDuration(flg.logRotation)
+	dirName := filepath.Dir(flg.filename)
 	files, err := ioutil.ReadDir(dirName)
 	if err != nil {
-		log.Print(err)
+		return err
 	}
 	var f *os.File
 	tNow := time.Now()
@@ -74,47 +47,48 @@ func (p *Process) openFirstOutputFile(filename string) (string, error) {
 				//We don't return here since we can try to open other files
 				log.Print(err.Error())
 			} else {
-				p.output = f
-				return name, nil
+				flg.log.output = f
+				flg.previousName = name
+				return nil
 			}
 		}
 	}
 	//If we arrive here it means we haven't correctly opened a file.
 	//We therefore create a new one
-	newName := filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
+	newName := flg.filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
+	flg.previousName = newName
 	f, err = os.Create(newName)
-	p.output = f
-	return newName, err
+	flg.log.output = f
+	return err
 }
 
-func (p *Process) manageLogRotation(filename, pName string) {
-	var newName, previousName string
-	previousName = pName
-	lifetime := convertLogRToDuration(p.Conf.LogRotation)
+func (flg *fileLogger) manageLogRotation() {
+	var newName string
+	lifetime := convertLogRToDuration(flg.logRotation)
 	ticker := time.NewTicker(lifetime)
 	for {
 		_ = <-ticker.C
 		//Open the new stdout file
-		newName = filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
+		newName = flg.filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
 		f, err := os.Create(newName)
-		if err != nil {
+		/*if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
-		}
-		oldOutput := p.output
+		}*/
+		oldOutput := flg.log.output
 
 		//assign it to p.output
-		p.output = f
+		flg.log.output = f
 
 		//we have to close the previous file in order for the copy to be done in the new stdout.
 		if err = oldOutput.Close(); err != nil {
 			log.Print(err)
 		}
 		//gzip&delete previousName
-		if err := compressOldOutput(previousName); err != nil {
+		if err := compressOldOutput(flg.previousName); err != nil {
 			log.Print("Can't archive old file:" + err.Error())
 		}
 		//Save the new name
-		previousName = newName
+		flg.previousName = newName
 	}
 }
 

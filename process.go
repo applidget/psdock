@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"github.com/kr/pty"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -21,7 +20,6 @@ type Process struct {
 	Term          *terminal.Terminal
 	stdinStruct   *stdin
 	StatusChannel chan ProcessStatus
-	output        io.WriteCloser
 }
 
 //NewProcess creates a new struct of type *Process and returns its address
@@ -34,7 +32,7 @@ func NewProcess(conf *Config) *Process {
 	}
 	newStatusChannel := make(chan ProcessStatus, 1)
 
-	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout, Notif: Notifier{webHook: conf.WebHook}}
+	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, Notif: Notifier{webHook: conf.WebHook}}
 }
 
 //SetEnvVars sets the environment variables for the launched process
