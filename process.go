@@ -25,6 +25,7 @@ type Process struct {
 	Status        int
 	StatusChannel chan ProcessStatus
 	oldTermState  *terminal.State
+	output        io.WriteCloser
 }
 
 //NewProcess creates a new struct of type *Process and returns its address
@@ -36,7 +37,7 @@ func NewProcess(conf *Config) *Process {
 		cmd = exec.Command(conf.Command)
 	}
 	newStatusChannel := make(chan ProcessStatus, 1)
-	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel}
+	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout}
 }
 
 //SetEnvVars sets the environment variables for the launched process
@@ -80,7 +81,8 @@ func (p *Process) SetUser() error {
 
 func (p *Process) Terminate(maxTryCount int) error {
 	if maxTryCount > 0 {
-		if err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM); err == nil {
+		err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
+		if err == nil && !p.isRunning() {
 			return nil
 		}
 	} else {
@@ -111,33 +113,6 @@ func (p *Process) hasBoundPort() bool {
 	grepOut, _ := grepCmd.Output()
 
 	return len(grepOut) > 0
-}
-
-func (p *Process) redirectStdin() error {
-	var err error
-	p.oldTermState, err = terminal.MakeRaw(int(os.Stdin.Fd()))
-	if err != nil {
-		return errors.New("Can't redirect stdin:" + err.Error())
-	}
-	newTerminal := terminal.NewTerminal(os.Stdin, "")
-	cb := func(s string, i int, r rune) (string, int, bool) {
-		car := []byte{byte(r)}
-		newTerminal.Write(car)
-		return s, i, false
-	}
-	newTerminal.AutoCompleteCallback = cb
-	go io.Copy(p.Pty, os.Stdin)
-	return nil
-}
-
-func (p *Process) restoreStdin() error {
-	err := terminal.Restore(int(os.Stdin.Fd()), p.oldTermState)
-	return err
-}
-
-func (p *Process) redirectStdout() error {
-	go io.Copy(os.Stdout, p.Pty)
-	return nil
 }
 
 func (p *Process) NotifyStatusChanged() error {
