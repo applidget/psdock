@@ -12,7 +12,6 @@ func ManageSignals(p *Process) {
 	signalChannel := make(chan os.Signal)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP, syscall.SIGALRM, syscall.SIGPIPE)
 	_ = <-signalChannel
-
 	//Terminate the process and notify
 	_ = p.Terminate(5)
 }

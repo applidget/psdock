@@ -81,7 +81,8 @@ func (p *Process) SetUser() error {
 
 func (p *Process) Terminate(maxTryCount int) error {
 	if maxTryCount > 0 {
-		if err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM); err == nil {
+		err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
+		if err == nil && !p.isRunning() {
 			return nil
 		}
 	} else {
