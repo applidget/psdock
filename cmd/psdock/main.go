@@ -12,7 +12,7 @@ func main() {
 	}
 
 	ps := psdock.NewProcess(conf)
-	if err = ps.SetUser(); err != nil {
+	if err = psdock.SetUser(ps.Conf.UserName); err != nil {
 		log.Fatal(err)
 	}
 	ps.SetEnvVars()

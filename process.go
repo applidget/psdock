@@ -3,14 +3,11 @@ package psdock
 import (
 	"bytes"
 	"code.google.com/p/go.crypto/ssh/terminal"
-	"errors"
 	"github.com/kr/pty"
 	"io"
 	"log"
 	"os"
 	"os/exec"
-	"os/user"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -36,6 +33,7 @@ func NewProcess(conf *Config) *Process {
 		cmd = exec.Command(conf.Command)
 	}
 	newStatusChannel := make(chan ProcessStatus, 1)
+
 	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout, Notif: Notifier{webHook: conf.WebHook}}
 }
 
@@ -48,34 +46,6 @@ func (p *Process) SetEnvVars() {
 	for _, envVar := range strings.Split(p.Conf.EnvVars, ",") {
 		p.Cmd.Env = append(p.Cmd.Env, envVar)
 	}
-}
-
-//SetUser tries to change the current user to newUsername
-func (p *Process) SetUser() error {
-	currentUser, err := user.Current()
-	if err != nil {
-		return errors.New("Can't determine the current user !\n" + err.Error())
-	}
-
-	if p.Conf.UserName == currentUser.Username {
-		return nil
-	}
-
-	newUser, err := user.Lookup(p.Conf.UserName)
-	if err != nil {
-		return errors.New("Can't find the user" + p.Conf.UserName + "!\n" + err.Error())
-	}
-
-	newUserUID, err := strconv.Atoi(newUser.Uid)
-	if err != nil {
-		return errors.New("Can't determine the new user UID !\n" + err.Error())
-	}
-
-	if err := syscall.Setuid(newUserUID); err != nil {
-		return errors.New("Can't change the user !\n" + err.Error())
-	}
-
-	return nil
 }
 
 func (p *Process) Terminate(maxTryCount int) error {
