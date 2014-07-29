@@ -10,7 +10,7 @@ type Notifier struct {
 	webHook string
 }
 
-func (n Notifier) NotifyStatusChanged(status int) error {
+func (n Notifier) Notify(status int) error {
 	if n.webHook == "" {
 		return nil
 	}

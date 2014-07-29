@@ -7,7 +7,6 @@ import (
 	"github.com/kr/pty"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
@@ -37,7 +36,7 @@ func NewProcess(conf *Config) *Process {
 		cmd = exec.Command(conf.Command)
 	}
 	newStatusChannel := make(chan ProcessStatus, 1)
-	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout, Notifier: Notifier{webHook: conf.WebHook}}
+	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, output: os.Stdout, Notif: Notifier{webHook: conf.WebHook}}
 }
 
 //SetEnvVars sets the environment variables for the launched process
@@ -136,33 +135,33 @@ func (p *Process) Start() error {
 			time.Sleep(100 * time.Millisecond)
 		}
 
-		if err = p.Notifier.Notify(PROCESS_STARTED); err != nil {
+		if err = p.Notif.Notify(PROCESS_STARTED); err != nil {
 			log.Println(err)
 		}
-		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_STARTED, Err: nil}
 
 		for p.isRunning() == false {
 			time.Sleep(100 * time.Millisecond)
 		}
 
-		if err = p..Notifier.Notify(PROCESS_RUNNING); err != nil {
+		if err = p.Notif.Notify(PROCESS_RUNNING); err != nil {
 			log.Println(err)
 		}
-		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
 
 		err = p.Cmd.Wait()
 		if err != nil {
 			p.restoreStdin()
-			p.Notifier.Notify(PROCESS_STOPPED)
+			p.Notif.Notify(PROCESS_STOPPED)
 			log.Fatal(err)
 		}
 
 		//p has stopped
 		p.restoreStdin()
-		if err = p.Notifier.Notify(PROCESS_STOPPED); err != nil {
+		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
 		}
-		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: nil}
 	}()
 
 	return nil

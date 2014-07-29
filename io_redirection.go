@@ -30,17 +30,8 @@ func (p *Process) redirectStdin() error {
 	}
 	newTerminal.AutoCompleteCallback = cb
 
-	//Set up new color
-	p.changeOutputColor(&newTerminal)
 	go io.Copy(p.Pty, os.Stdin)
 	return nil
-}
-
-func (p *Process) p.ChangeOutputColor(term *terminal.Terminal) {
-	if p.Config.LogColor =="" {
-		return
-	}
-	term.Write(term.Escape)
 }
 
 func (p *Process) restoreStdin() error {
