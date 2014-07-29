@@ -4,7 +4,6 @@ import (
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -44,10 +44,11 @@ func (p *Process) redirectStdout() error {
 			return err
 		}
 		if url.Scheme == "file" {
-			c := make(chan int, 1)
-			go p.manageLogRotation(url.Host+url.Path, c)
-			//Wait for the file to be ready
-			time.Sleep(100 * time.Millisecond)
+			newFilename, err := p.openFirstOutputFile(url.Host + url.Path)
+			if err != nil {
+				return err
+			}
+			go p.manageLogRotation(url.Host+url.Path, newFilename)
 		} else if url.Scheme == "tcp" {
 			p.output, err = net.Dial("tcp", url.Host+url.Path)
 			if err != nil {
@@ -61,62 +62,72 @@ func (p *Process) redirectStdout() error {
 
 func (p *Process) startCopy() {
 	_, _ = io.Copy(p.output, p.Pty)
-	//If we arrive here, the logger has created a new file.
-	//We start writing on the new p.Output
+	//If we arrive here, the logger has created a new file, and it is assigned to p.output
+	//We start writing on the new p.output
 	p.startCopy()
 }
 
-func (p *Process) manageLogRotation(filename string, c chan int) {
-	var previousName, newName string
-	var lifetime time.Duration
-	switch p.Conf.LogRotation {
-	case "minutely":
-		lifetime = time.Minute
-	case "hourly":
-		lifetime = time.Hour
-	case "daily":
-		lifetime = time.Hour * 24
-	case "weekly":
-		lifetime = time.Hour * 24 * 7
+//openFirstOutputFile tries to open a file in order to redirect stdout. If a
+func (p *Process) openFirstOutputFile(filename string) (string, error) {
+	//We have to check if one of the files is a log whose start date is less than time.Now()-lifetime.
+	//If that's the case, we use that file
+	lifetime := convertLogRToDuration(p.Conf.LogRotation)
+	dirName := filepath.Dir(filename)
+	files, err := ioutil.ReadDir(dirName)
+	if err != nil {
+		log.Print(err)
 	}
-	for {
-		if previousName == "" {
-			//We have to check if one of the files is a log whose start date is less than time.Now()-lifetime.
-			//If that's the case, we use that file
-			dirName := filepath.Dir(filename)
-			files, err := ioutil.ReadDir(dirName)
+	var f *os.File
+	tNow := time.Now()
+	for _, fileinfo := range files {
+		name := dirName + "/" + fileinfo.Name()
+		if fileinfo.IsDir() == false && filepath.Ext(name) == ".log" && recentEnough(fileinfo.Name(), tNow, lifetime) {
+			f, err = os.OpenFile(name, os.O_WRONLY|os.O_APPEND, 0600)
 			if err != nil {
-				log.Print(err)
+				//We don't return here since we can try to open other files
+				log.Print(err.Error())
+			} else {
+				p.output = f
+				return name, nil
 			}
-			var f *os.File
-			tNow := time.Now()
-			for _, fileinfo := range files {
-				if !fileinfo.IsDir() && filepath.Ext(fileinfo.Name()) == ".log" && recentEnough(fileinfo.Name(), tNow) {
-					newName = fileinfo.Name()
-					f, err = os.OpenFile(newName, os.RDWR|os.O_APPEND, 0660)
-				}
-			}
-		} else {
-			newName = filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
-			f, err = os.Create(newName)
 		}
+	}
+	//If we arrive here it means we haven't correctly opened a file.
+	//We therefore create a new one
+	newName := filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
+	f, err = os.Create(newName)
+	p.output = f
+	return newName, err
+}
+
+func (p *Process) manageLogRotation(filename, pName string) {
+	var newName, previousName string
+	previousName = pName
+	lifetime := convertLogRToDuration(p.Conf.LogRotation)
+	ticker := time.NewTicker(lifetime)
+	for {
+		_ = <-ticker.C
+		//Open the new stdout file
+		newName = filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
+		f, err := os.Create(newName)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
 		oldOutput := p.output
+
+		//assign it to p.output
 		p.output = f
-		if previousName != "" {
-			//We close the old file so that startCopy has to call again io.Copy to the updated p.output
-			if err = oldOutput.Close(); err != nil {
-				log.Print(err)
-			}
-			//previousName is ready to be gzipped
-			if err := compressOldOutput(previousName); err != nil {
-				log.Print("Can't archive old file:" + err.Error())
-			}
+
+		//we have to close the previous file in order for the copy to be done in the new stdout.
+		if err = oldOutput.Close(); err != nil {
+			log.Print(err)
 		}
+		//gzip&delete previousName
+		if err := compressOldOutput(previousName); err != nil {
+			log.Print("Can't archive old file:" + err.Error())
+		}
+		//Save the new name
 		previousName = newName
-		time.Sleep(lifetime)
 	}
 }
 
@@ -146,9 +157,27 @@ func compressOldOutput(oldFile string) error {
 	return nil
 }
 
-func recentEnough(path string, tNow time.Duration) bool {
-	lIndex := strings.LastIndex(path[:len(path)-5], ".")
-	dateOfPath := path[lIndex : len(path)-5]
-	//TODO
-	return false
+func recentEnough(path string, tNow time.Time, lifetime time.Duration) bool {
+	lIndex := strings.LastIndex(path[:len(path)-4], ".") //get rid of the .log extension
+	strDateOfPath := path[lIndex+1 : len(path)-4]
+	dateOfPath, _ := time.Parse("2006-01-02-15-04", strDateOfPath)
+	if tNow.Sub(dateOfPath) < lifetime {
+		return true
+	} else {
+		return false
+	}
+}
+
+func convertLogRToDuration(lifetime string) time.Duration {
+	switch lifetime {
+	case "minutely":
+		return time.Minute
+	case "hourly":
+		return time.Hour
+	case "daily":
+		return time.Hour * 24
+	case "weekly":
+		return time.Hour * 24 * 7
+	}
+	return -1
 }
