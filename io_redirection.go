@@ -55,8 +55,6 @@ func (p *Process) redirectStdout() error {
 			}
 		}
 	}
-	log.SetOutput(p.output)
-	log.SetPrefix(p.Conf.LogPrefix)
 	go p.startCopy()
 	return nil
 }
