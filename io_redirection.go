@@ -1,6 +1,7 @@
 package psdock
 
 import (
+	"bufio"
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"compress/gzip"
 	"errors"
@@ -61,7 +62,18 @@ func (p *Process) redirectStdout() error {
 }
 
 func (p *Process) startCopy() {
-	_, _ = io.Copy(p.output, p.Pty)
+	_, _ = p.output.Write([]byte(p.Conf.LogPrefix))
+	reader := bufio.NewReader(p.Pty)
+	for {
+		rune, _, _ := reader.ReadRune()
+		_, err := p.output.Write([]byte{byte(rune)})
+		if rune == '\n' {
+			_, _ = p.output.Write([]byte(p.Conf.LogPrefix))
+		}
+		if err != nil {
+			break
+		}
+	}
 	//If we arrive here, the logger has created a new file, and it is assigned to p.output
 	//We start writing on the new p.output
 	p.startCopy()
