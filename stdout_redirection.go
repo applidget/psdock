@@ -13,6 +13,6 @@ func (p *Process) redirectStdout() error {
 	if err != nil {
 		return err
 	}
-	logger.startCopy(p.Pty)
+	go logger.startCopy(p.Pty)
 	return nil
 }

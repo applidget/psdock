@@ -1,7 +1,8 @@
 package psdock
 
 import (
-	"bufio"
+	//"bufio"
+	//"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -14,6 +15,9 @@ type Logger struct {
 
 func newLogger(url url.URL, prefix string, lRotation string) (*Logger, error) {
 	var result Logger
+	if url.Path == "os.Stdout" {
+		result = Logger{output: os.Stdout, prefix: prefix}
+	}
 	if url.Scheme == "file" {
 		var err error
 		r, err := NewFileLogger(url.Host+url.Path, prefix, lRotation)
@@ -33,7 +37,7 @@ func newLogger(url url.URL, prefix string, lRotation string) (*Logger, error) {
 }
 
 func (log *Logger) startCopy(pty *os.File) {
-	_, _ = log.output.Write([]byte(log.prefix))
+	/*_, _ = log.output.Write([]byte(log.prefix))
 	reader := bufio.NewReader(pty)
 	for {
 		rune, _, _ := reader.ReadRune()
@@ -47,5 +51,6 @@ func (log *Logger) startCopy(pty *os.File) {
 	}
 	//If we arrive here, the logger has created a new file, and it is assigned to p.output
 	//We start writing on the new p.output
-	log.startCopy(pty)
+	log.startCopy(pty)*/
+	io.Copy(log.output, pty)
 }

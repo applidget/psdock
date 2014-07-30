@@ -96,10 +96,10 @@ func (p *Process) Start() error {
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
+
 		if err = p.redirectStdout(); err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
-
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
 		}
