@@ -92,12 +92,14 @@ func (p *Process) Start() error {
 
 	go func() {
 		var err error
+		eofChannel := make(chan bool, 1)
 		p.stdinStruct, err = redirectStdin(os.Stdin, p.Pty)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
+		defer p.stdinStruct.restoreStdin()
 
-		if err = p.redirectStdout(); err != nil {
+		if err = p.redirectStdout(eofChannel); err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
 		for !p.isStarted() {
@@ -124,7 +126,7 @@ func (p *Process) Start() error {
 			p.Notif.Notify(PROCESS_STOPPED)
 			log.Fatal(err)
 		}
-
+		_ = <-eofChannel
 		//p has stopped
 		p.stdinStruct.restoreStdin()
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {

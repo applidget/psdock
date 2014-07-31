@@ -2,6 +2,7 @@ package psdock
 
 import (
 	"compress/gzip"
+	//"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,19 +12,19 @@ import (
 )
 
 type fileLogger struct {
-	log          Logger
+	log          *Logger
 	previousName string
 	logRotation  string
 	filename     string
 }
 
-func NewFileLogger(fName, prfx, lRotation string) (*fileLogger, error) {
-	result := fileLogger{filename: fName, log: Logger{prefix: prfx}, logRotation: lRotation}
+func NewFileLogger(fName, prfx, lRotation string, statusChannel chan ProcessStatus) (*fileLogger, error) {
+	result := fileLogger{filename: fName, log: &Logger{prefix: prfx}, logRotation: lRotation}
 	err := result.openFirstOutputFile()
 	if err != nil {
 		return nil, err
 	}
-	go result.manageLogRotation()
+	go result.manageLogRotation(statusChannel)
 	return &result, nil
 }
 
@@ -62,7 +63,7 @@ func (flg *fileLogger) openFirstOutputFile() error {
 	return err
 }
 
-func (flg *fileLogger) manageLogRotation() {
+func (flg *fileLogger) manageLogRotation(statusChannel chan ProcessStatus) {
 	var newName string
 	lifetime := convertLogRToDuration(flg.logRotation)
 	ticker := time.NewTicker(lifetime)
@@ -71,21 +72,21 @@ func (flg *fileLogger) manageLogRotation() {
 		//Open the new stdout file
 		newName = flg.filename + "." + string(time.Now().Format("2006-01-02-15-04")+".log")
 		f, err := os.Create(newName)
-		/*if err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
-		}*/
+		if err != nil {
+			statusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
 		oldOutput := flg.log.output
 
 		//assign it to p.output
 		flg.log.output = f
-
 		//we have to close the previous file in order for the copy to be done in the new stdout.
 		if err = oldOutput.Close(); err != nil {
-			log.Print(err)
+			statusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
+
 		//gzip&delete previousName
 		if err := compressOldOutput(flg.previousName); err != nil {
-			log.Print("Can't archive old file:" + err.Error())
+			statusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
 		//Save the new name
 		flg.previousName = newName
