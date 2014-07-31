@@ -1,12 +1,14 @@
 package psdock
 
 import (
+	"bufio"
 	"bytes"
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"github.com/kr/pty"
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -63,19 +65,24 @@ func (p *Process) isRunning() bool {
 	if p.Conf.BindPort == 0 {
 		return p.isStarted()
 	} else {
+		//fmt.Println(p.hasBoundPort())
 		return p.isStarted() && p.hasBoundPort()
 	}
 }
 
 func (p *Process) hasBoundPort() bool {
-	//We execute netstat -an | grep bindPort to find if bindPort is open
-	netstCmd := exec.Command("netstat", "-an")
-	grepCmd := exec.Command("grep", string(p.Conf.BindPort))
-	netstOut, _ := netstCmd.Output()
-	grepCmd.Stdin = bytes.NewBuffer(netstOut)
-	grepOut, _ := grepCmd.Output()
+	//We execute lsof -i :bindPort to find if bindPort is open
+	//For the moment, we only verified that bindPort is used by some process
+	lsofCmd := exec.Command("lsof", "-i", ":"+strconv.Itoa(p.Conf.BindPort))
 
-	return len(grepOut) > 0
+	lsofBytes, _ := lsofCmd.Output()
+	lsofScanner := bufio.NewScanner(bytes.NewBuffer(lsofBytes))
+	lsofScanner.Scan()
+	lsofScanner.Text()
+	lsofScanner.Scan()
+	lsofResult := lsofScanner.Text()
+
+	return len(lsofResult) > 0
 }
 
 func (p *Process) Start() error {
@@ -123,7 +130,8 @@ func (p *Process) Start() error {
 			log.Fatal(err)
 		}
 		_ = <-eofChannel
-		//p has stopped
+
+		//p has stopped and stdout has been written
 		p.stdinStruct.restoreStdin()
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
