@@ -37,7 +37,7 @@ func ParseArgs() (*Config, error) {
 	flag.StringVar(&parsedConfig.Stdout, "stdout", "os.Stdout", "redirection path for the stdout/stderr of the launched process")
 	flag.StringVar(&parsedConfig.LogRotation, "log-rotation", "daily", "lifetime of a single log file.")
 	flag.StringVar(&parsedConfig.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
-	flag.StringVar(&parsedConfig.LogColor, "log-color", "", "color for logging the output of the launched process")
+	flag.StringVar(&parsedConfig.LogColor, "log-color", "black", "color for logging the output of the launched process")
 	flag.StringVar(&parsedConfig.EnvVars, "env-vars", "", "Config passed to the launched command")
 	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")

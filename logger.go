@@ -29,13 +29,13 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 			return nil, err
 		}
 		result = r.log
-	} /*else if url.Scheme == "tcp" {
-		result, err = newTcpLogger("tcp", url.Host+url.Path, prefix)
-		//result, err = net.Dial("tcp", url.Host+url.Path)
+	} else if url.Scheme == "tcp" {
+		r, err := newTcpLogger("tcp", url.Host+url.Path, prefix)
 		if err != nil {
 			return nil, err
 		}
-	}*/
+		result = r.log
+	}
 	return result, nil
 }
 
