@@ -3,7 +3,6 @@ package psdock
 import (
 	"bufio"
 	"bytes"
-	"code.google.com/p/go.crypto/ssh/terminal"
 	"github.com/kr/pty"
 	"log"
 	"os"
@@ -19,7 +18,6 @@ type Process struct {
 	Conf          *Config
 	Notif         Notifier
 	Pty           *os.File
-	Term          *terminal.Terminal
 	stdinStruct   *stdin
 	StatusChannel chan ProcessStatus
 }
