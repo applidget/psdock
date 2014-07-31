@@ -35,7 +35,7 @@ func main() {
 		}
 		switch status.Status {
 		case psdock.PROCESS_STARTED:
-			//go psdock.ManageSignals(ps)
+			go psdock.ManageSignals(ps)
 		case psdock.PROCESS_RUNNING:
 
 		case psdock.PROCESS_STOPPED:

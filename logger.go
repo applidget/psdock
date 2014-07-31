@@ -24,11 +24,11 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 		if err != nil {
 			return nil, err
 		}
-		result = r.log
 		err = r.openFirstOutputFile()
 		if err != nil {
 			return nil, err
 		}
+		result = r.log
 	} /*else if url.Scheme == "tcp" {
 		result, err = newTcpLogger("tcp", url.Host+url.Path, prefix)
 		//result, err = net.Dial("tcp", url.Host+url.Path)
@@ -60,11 +60,4 @@ func (log *Logger) startCopy(pty *os.File, eofChannel chan bool) {
 			break
 		}
 	}
-	//If we arrive here, the logger has created a new file, and it is assigned to p.output
-	//We start writing on the new p.output
-	//log.startCopy(pty)
-	/*fmt.Println("starting startCopy!")
-	_, err := io.Copy(log.output, pty)
-	fmt.Println(err)
-	log.startCopy(pty)*/
 }

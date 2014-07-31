@@ -46,17 +46,13 @@ func (p *Process) SetEnvVars() {
 	}
 }
 
-func (p *Process) Terminate(maxTryCount int) error {
-	if maxTryCount > 0 {
-		err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
-		if err == nil && !p.isRunning() {
-			return nil
-		}
-	} else {
-		return syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL)
+func (p *Process) Terminate(nbSec int) error {
+	syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
+	time.Sleep(time.Duration(nbSec) * time.Second)
+	if !p.isRunning() {
+		return nil
 	}
-	time.Sleep(100 * time.Millisecond)
-	return p.Terminate(maxTryCount - 1)
+	return syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL)
 }
 
 func (p *Process) isStarted() bool {
