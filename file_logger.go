@@ -2,7 +2,6 @@ package psdock
 
 import (
 	"compress/gzip"
-	//"fmt"
 	"io/ioutil"
 	"log"
 	"os"

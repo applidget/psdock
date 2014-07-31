@@ -13,7 +13,7 @@ type stdin struct {
 	stdinOutput  *os.File
 }
 
-func redirectStdin(newStdin, pty *os.File) (*stdin, error) {
+func setTerminalAndRedirectStdin(newStdin, pty *os.File, color string) (*stdin, error) {
 	var err error
 	result := &stdin{stdinOutput: newStdin}
 	result.oldTermState, err = terminal.MakeRaw(int(newStdin.Fd()))
@@ -29,10 +29,39 @@ func redirectStdin(newStdin, pty *os.File) (*stdin, error) {
 	result.term.AutoCompleteCallback = cb
 
 	go io.Copy(pty, newStdin)
+
+	//Set up terminal color
+	err = result.setTerminalColor(color)
+	if err != nil {
+		return nil, errors.New("Can't set color:" + err.Error())
+	}
 	return result, nil
 }
 
 func (s *stdin) restoreStdin() error {
 	err := terminal.Restore(int(s.stdinOutput.Fd()), s.oldTermState)
+	return err
+}
+
+func (s *stdin) setTerminalColor(color string) error {
+	var err error
+	switch color {
+	case "red":
+		_, err = s.term.Write(s.term.Escape.Red)
+	case "green":
+		_, err = s.term.Write(s.term.Escape.Green)
+	case "blue":
+		_, err = s.term.Write(s.term.Escape.Blue)
+	case "yellow":
+		_, err = s.term.Write(s.term.Escape.Yellow)
+	case "magenta":
+		_, err = s.term.Write(s.term.Escape.Magenta)
+	case "cyan":
+		_, err = s.term.Write(s.term.Escape.Cyan)
+	case "white":
+		_, err = s.term.Write(s.term.Escape.White)
+	default:
+		_, err = s.term.Write(s.term.Escape.Black)
+	}
 	return err
 }

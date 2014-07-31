@@ -14,5 +14,6 @@ func (p *Process) redirectStdout(eofChannel chan bool) error {
 		return err
 	}
 	go logger.startCopy(p.Pty, eofChannel)
+
 	return nil
 }
