@@ -8,9 +8,9 @@ type tcpLogger struct {
 	log *Logger
 }
 
-func newTcpLogger(protocol, path, prefix string) (*tcpLogger, error) {
+func newTcpLogger(path, prefix string) (*tcpLogger, error) {
 	result := tcpLogger{log: &Logger{prefix: prefix}}
-	conn, err := net.Dial(protocol, path)
+	conn, err := net.Dial("tcp", path)
 	if err != nil {
 		return nil, err
 	}

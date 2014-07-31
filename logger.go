@@ -30,7 +30,7 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 		}
 		result = r.log
 	} else if url.Scheme == "tcp" {
-		r, err := newTcpLogger("tcp", url.Host+url.Path, prefix)
+		r, err := newTcpLogger(url.Host+url.Path, prefix)
 		if err != nil {
 			return nil, err
 		}
