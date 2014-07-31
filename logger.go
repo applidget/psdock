@@ -59,5 +59,13 @@ func (log *Logger) startCopy(pty *os.File, eofChannel chan bool) {
 			logLib.Println(err)
 			break
 		}
+		if rune == 0x0A {
+			_, err = log.output.Write([]byte(log.prefix))
+			if err != nil {
+				logLib.Println("erreur")
+				logLib.Println(err)
+				break
+			}
+		}
 	}
 }
