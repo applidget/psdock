@@ -13,7 +13,7 @@ func (p *Process) redirectStdout(eofChannel chan bool) error {
 	if err != nil {
 		return err
 	}
-	go logger.startCopy(p.Pty, eofChannel)
+	go logger.startCopy(p.Pty, eofChannel, p.stdinStruct, p.Conf.LogColor)
 
 	return nil
 }

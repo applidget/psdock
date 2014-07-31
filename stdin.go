@@ -13,7 +13,7 @@ type stdin struct {
 	stdinOutput  *os.File
 }
 
-func setTerminalAndRedirectStdin(newStdin, pty *os.File, color string) (*stdin, error) {
+func setTerminalAndRedirectStdin(newStdin, pty *os.File) (*stdin, error) {
 	var err error
 	result := &stdin{stdinOutput: newStdin}
 	result.oldTermState, err = terminal.MakeRaw(int(newStdin.Fd()))
@@ -30,11 +30,6 @@ func setTerminalAndRedirectStdin(newStdin, pty *os.File, color string) (*stdin, 
 
 	go io.Copy(pty, newStdin)
 
-	//Set up terminal color
-	err = result.setTerminalColor(color)
-	if err != nil {
-		return nil, errors.New("Can't set color:" + err.Error())
-	}
 	return result, nil
 }
 
@@ -63,5 +58,11 @@ func (s *stdin) setTerminalColor(color string) error {
 	default:
 		_, err = s.term.Write(s.term.Escape.Black)
 	}
+	return err
+}
+
+func (s *stdin) resetTerminal() error {
+	var err error
+	_, err = s.term.Write(s.term.Escape.Reset)
 	return err
 }

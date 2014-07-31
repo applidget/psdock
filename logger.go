@@ -39,8 +39,11 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 	return result, nil
 }
 
-func (log *Logger) startCopy(pty *os.File, eofChannel chan bool) {
-	_, _ = log.output.Write([]byte(log.prefix))
+func (log *Logger) startCopy(pty *os.File, eofChannel chan bool, in *stdin, color string) {
+	var err error
+	if err = log.writePrefix(color, in); err != nil {
+		logLib.Println(err)
+	}
 	reader := bufio.NewReader(pty)
 	for {
 		rune, _, err := reader.ReadRune()
@@ -60,12 +63,29 @@ func (log *Logger) startCopy(pty *os.File, eofChannel chan bool) {
 			break
 		}
 		if rune == 0x0A {
-			_, err = log.output.Write([]byte(log.prefix))
-			if err != nil {
-				logLib.Println("erreur")
+			if err = log.writePrefix(color, in); err != nil {
 				logLib.Println(err)
-				break
 			}
 		}
 	}
+}
+
+func (log *Logger) writePrefix(color string, in *stdin) error {
+	var err error
+	//Color output
+	err = in.setTerminalColor(color)
+	if err != nil {
+		return err
+	}
+	//Write prefix
+	_, err = log.output.Write([]byte(log.prefix))
+	if err != nil {
+		return err
+	}
+	//Uncolor output
+	err = in.resetTerminal()
+	if err != nil {
+		return err
+	}
+	return nil
 }

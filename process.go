@@ -95,7 +95,7 @@ func (p *Process) Start() error {
 	go func() {
 		var err error
 		eofChannel := make(chan bool, 1)
-		p.stdinStruct, err = setTerminalAndRedirectStdin(os.Stdin, p.Pty, p.Conf.LogColor)
+		p.stdinStruct, err = setTerminalAndRedirectStdin(os.Stdin, p.Pty)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
