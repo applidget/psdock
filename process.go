@@ -65,7 +65,6 @@ func (p *Process) isRunning() bool {
 	if p.Conf.BindPort == 0 {
 		return p.isStarted()
 	} else {
-		//fmt.Println(p.hasBoundPort())
 		return p.isStarted() && p.hasBoundPort()
 	}
 }
