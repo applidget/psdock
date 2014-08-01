@@ -145,7 +145,7 @@ func (p *Process) Start() error {
 			//30s timeout
 			if time.Now().Sub(refTime) > 90*time.Second {
 				p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED,
-					Err: errors.New("Processed did not bind the port within the timeout")}
+					Err: errors.New("Processed did not start within the timeout")}
 				return
 			}
 		}
