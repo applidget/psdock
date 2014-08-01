@@ -3,6 +3,7 @@ package psdock
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"github.com/kr/pty"
 	"log"
 	"os"
@@ -20,6 +21,7 @@ type Process struct {
 	Pty           *os.File
 	stdinStruct   *stdin
 	StatusChannel chan ProcessStatus
+	eofChannel    chan bool
 }
 
 //NewProcess creates a new struct of type *Process and returns its address
@@ -127,18 +129,25 @@ func (p *Process) Start() error {
 
 	go func() {
 		var err error
-		eofChannel := make(chan bool, 1)
+		p.eofChannel = make(chan bool, 1)
 		p.stdinStruct, err = setTerminalAndRedirectStdin(os.Stdin, p.Pty)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
 		defer p.stdinStruct.restoreStdin()
 
-		if err = p.redirectStdout(eofChannel); err != nil {
+		if err = p.redirectStdout(); err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
+		refTime := time.Now()
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
+			//30s timeout
+			if time.Now().Sub(refTime) > 90*time.Second {
+				p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED,
+					Err: errors.New("Processed did not bind the port within the timeout")}
+				return
+			}
 		}
 
 		if err = p.Notif.Notify(PROCESS_STARTED); err != nil {
@@ -146,8 +155,15 @@ func (p *Process) Start() error {
 		}
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_STARTED, Err: nil}
 
+		refTime = time.Now()
 		for p.isRunning() == false {
 			time.Sleep(100 * time.Millisecond)
+			//30s timeout
+			if time.Now().Sub(refTime) > 90*time.Second {
+				p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED,
+					Err: errors.New("Processed did not bind the port within the timeout")}
+				return
+			}
 		}
 
 		if err = p.Notif.Notify(PROCESS_RUNNING); err != nil {
@@ -157,14 +173,12 @@ func (p *Process) Start() error {
 
 		err = p.Cmd.Wait()
 		if err != nil {
-			p.stdinStruct.restoreStdin()
 			p.Notif.Notify(PROCESS_STOPPED)
 			log.Fatal(err)
 		}
-		_ = <-eofChannel
+		_ = <-p.eofChannel
 
 		//p has stopped and stdout has been written
-		p.stdinStruct.restoreStdin()
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
 		}

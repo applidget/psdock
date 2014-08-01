@@ -4,7 +4,7 @@ import (
 	"net/url"
 )
 
-func (p *Process) redirectStdout(eofChannel chan bool) error {
+func (p *Process) redirectStdout() error {
 	url, err := url.Parse(p.Conf.Stdout)
 	if err != nil {
 		return err
@@ -13,7 +13,7 @@ func (p *Process) redirectStdout(eofChannel chan bool) error {
 	if err != nil {
 		return err
 	}
-	go logger.startCopy(p.Pty, eofChannel, p.stdinStruct, p.Conf.LogColor)
+	go logger.startCopy(p.Pty, p.eofChannel, p.stdinStruct, p.Conf.LogColor)
 
 	return nil
 }
