@@ -3,6 +3,7 @@ package psdock
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"github.com/kr/pty"
 	"log"
 	"os"
