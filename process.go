@@ -78,8 +78,43 @@ func (p *Process) hasBoundPort() bool {
 	lsofScanner.Text()
 	lsofScanner.Scan()
 	lsofResult := lsofScanner.Text()
+	if len(lsofResult) == 0 {
+		return false
+	}
 
-	return len(lsofResult) > 0
+	plsofResult := strings.Split(lsofResult, "    ")
+
+	plsofResult = strings.Split(plsofResult[1], " ")
+	ownerPid, _ := strconv.Atoi(plsofResult[0])
+	ppids, _ := getPPIDs(p.Cmd.Process.Pid)
+	for _, v := range ppids {
+		if v == ownerPid {
+			return true
+		}
+	}
+	return false
+}
+
+func getPPIDs(pid int) ([]int, error) {
+	pgrepCmd := exec.Command("pgrep", "-P", strconv.Itoa(pid))
+	pgrepOutput, _ := pgrepCmd.Output()
+
+	scanner := bufio.NewScanner(strings.NewReader(string(pgrepOutput)))
+	ppids := []int{pid}
+	for scanner.Scan() {
+		childPid, err := strconv.Atoi(scanner.Text())
+		if err != nil {
+			log.Println(err)
+			break
+		}
+		childPidsRecur, err := getPPIDs(childPid)
+		if err != nil {
+			log.Println(err)
+			break
+		}
+		ppids = append(ppids, childPidsRecur...)
+	}
+	return ppids, nil
 }
 
 func (p *Process) Start() error {
