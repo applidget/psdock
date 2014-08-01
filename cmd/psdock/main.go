@@ -18,9 +18,7 @@ func main() {
 	}
 	ps.SetEnvVars()
 
-	if err = ps.Start(); err != nil {
-		log.Fatal(err)
-	}
+	ps.Start()
 
 	for {
 		status := <-ps.StatusChannel

@@ -3,7 +3,6 @@ package psdock
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"github.com/kr/pty"
 	"log"
 	"os"
@@ -19,7 +18,7 @@ type Process struct {
 	Conf          *Config
 	Notif         Notifier
 	Pty           *os.File
-	stdinStruct   *stdin
+	ioInfo        *ioStruct
 	StatusChannel chan ProcessStatus
 	eofChannel    chan bool
 }
@@ -88,7 +87,7 @@ func (p *Process) hasBoundPort() bool {
 
 	plsofResult = strings.Split(plsofResult[1], " ")
 	ownerPid, _ := strconv.Atoi(plsofResult[0])
-	ppids, _ := getPPIDs(p.Cmd.Process.Pid)
+	ppids, _ := getPIDs(p.Cmd.Process.Pid)
 	for _, v := range ppids {
 		if v == ownerPid {
 			return true
@@ -97,93 +96,56 @@ func (p *Process) hasBoundPort() bool {
 	return false
 }
 
-func getPPIDs(pid int) ([]int, error) {
-	pgrepCmd := exec.Command("pgrep", "-P", strconv.Itoa(pid))
-	pgrepOutput, _ := pgrepCmd.Output()
-
-	scanner := bufio.NewScanner(strings.NewReader(string(pgrepOutput)))
-	ppids := []int{pid}
-	for scanner.Scan() {
-		childPid, err := strconv.Atoi(scanner.Text())
-		if err != nil {
-			log.Println(err)
-			break
-		}
-		childPidsRecur, err := getPPIDs(childPid)
-		if err != nil {
-			log.Println(err)
-			break
-		}
-		ppids = append(ppids, childPidsRecur...)
-	}
-	return ppids, nil
-}
-
-func (p *Process) Start() error {
-	//We start the process
-	var startErr error
-	p.Pty, startErr = pty.Start(p.Cmd)
-	if startErr != nil {
-		return startErr
-	}
+func (p *Process) Start() {
+	initCompleteChannel := make(chan bool)
+	p.eofChannel = make(chan bool, 1)
 
 	go func() {
-		var err error
-		p.eofChannel = make(chan bool, 1)
-		p.stdinStruct, err = setTerminalAndRedirectStdin(os.Stdin, p.Pty)
+		var startErr error
+		p.Pty, startErr = pty.Start(p.Cmd)
+		if startErr != nil {
+			log.Println(startErr)
+		}
+		initCompleteChannel <- true
+
+		err := p.Cmd.Wait()
 		if err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
-		}
-		defer p.stdinStruct.restoreStdin()
-
-		if err = p.redirectStdout(); err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
-		}
-		refTime := time.Now()
-		for !p.isStarted() {
-			time.Sleep(100 * time.Millisecond)
-			//30s timeout
-			if time.Now().Sub(refTime) > 90*time.Second {
-				p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED,
-					Err: errors.New("Processed did not start within the timeout")}
-				return
-			}
-		}
-
-		if err = p.Notif.Notify(PROCESS_STARTED); err != nil {
 			log.Println(err)
-		}
-		p.StatusChannel <- ProcessStatus{Status: PROCESS_STARTED, Err: nil}
-
-		refTime = time.Now()
-		for p.isRunning() == false {
-			time.Sleep(100 * time.Millisecond)
-			//30s timeout
-			if time.Now().Sub(refTime) > 90*time.Second {
-				p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED,
-					Err: errors.New("Processed did not bind the port within the timeout")}
-				return
-			}
-		}
-
-		if err = p.Notif.Notify(PROCESS_RUNNING); err != nil {
-			log.Println(err)
-		}
-		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
-
-		err = p.Cmd.Wait()
-		if err != nil {
 			p.Notif.Notify(PROCESS_STOPPED)
-			log.Fatal(err)
+			p.Terminate(5)
 		}
 		_ = <-p.eofChannel
-
-		//p has stopped and stdout has been written
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: nil}
 	}()
 
-	return nil
+	go func() {
+		var err error
+		_ = <-initCompleteChannel
+
+		p.ioInfo, err = newIOStruct(os.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
+			p.StatusChannel, p.eofChannel)
+		if err != nil {
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
+		defer p.ioInfo.restoreIO()
+
+		for !p.isStarted() {
+			time.Sleep(100 * time.Millisecond)
+		}
+		if err = p.Notif.Notify(PROCESS_STARTED); err != nil {
+			log.Println(err)
+		}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_STARTED, Err: nil}
+
+		for p.isRunning() == false {
+			time.Sleep(100 * time.Millisecond)
+		}
+		if err = p.Notif.Notify(PROCESS_RUNNING); err != nil {
+			log.Println(err)
+		}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
+	}()
 }
