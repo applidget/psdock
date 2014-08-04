@@ -125,7 +125,7 @@ func (p *Process) Start() {
 		var err error
 		_ = <-initCompleteChannel
 
-		p.ioInfo, err = newIOStruct(os.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
+		p.ioInfo, err = newIOStruct(p.Conf.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
 			p.StatusChannel, p.eofChannel)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}

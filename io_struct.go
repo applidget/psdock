@@ -15,23 +15,14 @@ type ioStruct struct {
 	log          *Logger
 }
 
-func newIOStruct(newStdin, pty *os.File, stdout, logPrefix, logRotation, logColor string,
+func newIOStruct(stdinStr string, pty *os.File, stdout, logPrefix, logRotation, logColor string,
 	statusChannel chan ProcessStatus, eofChannel chan bool) (*ioStruct, error) {
 	var err error
 	result := &ioStruct{stdinOutput: newStdin}
-	result.oldTermState, err = terminal.MakeRaw(int(newStdin.Fd()))
-	if err != nil {
-		return nil, errors.New("Can't create terminal:" + err.Error())
-	}
-	result.term = terminal.NewTerminal(newStdin, "")
-	cb := func(s string, i int, r rune) (string, int, bool) {
-		car := []byte{byte(r)}
-		result.term.Write(car)
-		return s, i, false
-	}
-	result.term.AutoCompleteCallback = cb
 
-	go io.Copy(pty, newStdin)
+	if err = result.redirectStdin(pty, stdinStr); err != nil {
+		return nil, errors.New("Can't redirect stdin:" + err.Error())
+	}
 
 	if err = result.redirectStdout(pty, stdout, logPrefix, logRotation, logColor, statusChannel, eofChannel); err != nil {
 		statusChannel <- ProcessStatus{Status: -1, Err: err}
@@ -43,6 +34,34 @@ func newIOStruct(newStdin, pty *os.File, stdout, logPrefix, logRotation, logColo
 func (ioS *ioStruct) restoreIO() error {
 	err := terminal.Restore(int(ioS.stdinOutput.Fd()), ioS.oldTermState)
 	return err
+}
+
+func (ioS *ioStruct) redirectStdin(pty *os.File, stdinStr string) error {
+	var stdin *os.File
+	url, err := url.Parse(stdinStr)
+	if err != nil {
+		return err
+	}
+	if url.Path == "os.Stdin" {
+		newStdin = os.Stdin
+	} else if url.Scheme == "tcp"{
+		//A completer, avec la verif dans config.go
+		if url.P
+	ioS.oldTermState, err = terminal.MakeRaw(int(newStdin.Fd()))
+	if err != nil {
+		return errors.New("Can't create terminal:" + err.Error())
+	}
+	ioS.term = terminal.NewTerminal(newStdin, "")
+	cb := func(s string, i int, r rune) (string, int, bool) {
+		car := []byte{byte(r)}
+		result.term.Write(car)
+		return s, i, false
+	}
+	ioS.term.AutoCompleteCallback = cb
+
+	go io.Copy(pty, newStdin)
+
+	return nil
 }
 
 func (ioS *ioStruct) redirectStdout(pty *os.File, stdout, logPrefix, logRotation, logColor string,

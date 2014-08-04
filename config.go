@@ -26,6 +26,7 @@ type Config struct {
 	EnvVars     string
 	BindPort    int
 	WebHook     string
+	Stdin       string
 	UserName    string
 }
 
@@ -41,6 +42,7 @@ func ParseArgs() (*Config, error) {
 	flag.StringVar(&parsedConfig.EnvVars, "env-vars", "", "Config passed to the launched command")
 	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
+	flag.StringVar(&parsedConfig.Stdin, "stdin", "os.Stdin", "url used to read stdin")
 
 	//Retrieve the name of the current user. Will be used as a default value for user-name
 	user, err := user.Current()
