@@ -23,10 +23,10 @@ A simple tool to launch and monitor processes.
 
 Example :
 
-  `psdock --process "nc -l 8080" --web-hook http://distantUrl:80 --bind-port 8080 --log-prefix "NETCAT"`
+  `psdock --command "nc -l 8080" --web-hook http://distantUrl:80 --bind-port 8080 --log-prefix "NETCAT"`
 
 Flags :  
-  * --process : process to be executed by psdock  
+  * --command : command to be executed by psdock  
   * --stdout : redirection path for the stdout/stderr of the launched process (stdout by default)  
   * --log-rotation : lifetime of a single log file. Can be "minutely", "hourly", "weekly" (default) or "daily"  
   * --log-prefix : prefix for logging the output of the launched process  
