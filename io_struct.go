@@ -21,7 +21,7 @@ func newIOContext(stdinStr string, pty *os.File, stdout, logPrefix, logRotation,
 	var err error
 	result := &ioContext{}
 
-	if err = result.redirectStdin(pty, stdinStr); err != nil {
+	if err = result.redirectStdin(pty, stdinStr, statusChannel); err != nil {
 		return nil, errors.New("Can't redirect stdin:" + err.Error())
 	}
 
@@ -37,7 +37,7 @@ func (ioC *ioContext) restoreIO() error {
 	return err
 }
 
-func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string) error {
+func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string, statusChannel chan ProcessStatus) error {
 	url, err := url.Parse(stdinStr)
 	if err != nil {
 		return err
@@ -50,7 +50,11 @@ func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string) error {
 			return err
 		}
 		//Directly copy from the connection to the pty. Escape chars won't be available
-		go io.Copy(pty, conn)
+		go func() {
+			io.Copy(pty, conn)
+			//When the remote stdin closes, terminate the process through the status Channel
+			statusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: errors.New("Remote stdin closed")}
+		}()
 	} else {
 		//default case, the protocol is not supported
 		return errors.New("The protocol " + url.Scheme + " is not supported")

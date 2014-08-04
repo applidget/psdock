@@ -59,6 +59,7 @@ func ParseArgs() (*Config, error) {
 
 	if tomlConfigFilename != "" {
 		if len(os.Args) != 3 {
+			flag.PrintDefaults()
 			return nil, errors.New("If a toml config file is given, you can't specify other arguments!")
 		}
 		err := parseTOML(&parsedConfig, tomlConfigFilename)
