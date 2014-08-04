@@ -53,7 +53,6 @@ func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string, statusChannel
 		go func() {
 			io.Copy(pty, conn)
 			//When the remote stdin closes, terminate the process through the status Channel
-			//(will be handled in main.go)
 			statusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: errors.New("Remote stdin closed")}
 		}()
 	} else {
