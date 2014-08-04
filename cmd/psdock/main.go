@@ -6,27 +6,25 @@ import (
 )
 
 func main() {
-	conf, err := psdock.ParseConfig()
+	conf, err := psdock.ParseArgs()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	ps := psdock.NewProcess(conf)
-	if err = ps.SetUser(); err != nil {
+	if err = psdock.SetUser(ps.Conf.UserName); err != nil {
 		log.Fatal(err)
 	}
 	ps.SetEnvVars()
 
-	if err = ps.Start(); err != nil {
-		log.Fatal(err)
-	}
+	ps.Start()
 
 	for {
 		status := <-ps.StatusChannel
 		if status.Err != nil {
 			//Should an error occur, we want to kill the process
-			ps.Status = psdock.PROCESS_STOPPED
-			ps.NotifyStatusChanged()
+			ps.Notif.Notify(psdock.PROCESS_STOPPED)
+			log.Println(status.Err)
 			termErr := ps.Terminate(5)
 			log.Println(status.Err)
 			log.Println(termErr)

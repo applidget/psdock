@@ -1,5 +1,6 @@
 package psdock
 
+const EOL rune = 0x0A
 const PROCESS_STARTED int = 0
 const PROCESS_RUNNING int = 1
 const PROCESS_STOPPED int = 2

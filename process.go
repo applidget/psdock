@@ -1,16 +1,12 @@
 package psdock
 
 import (
+	"bufio"
 	"bytes"
-	"code.google.com/p/go.crypto/ssh/terminal"
-	"errors"
 	"github.com/kr/pty"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
-	"os/user"
 	"strconv"
 	"strings"
 	"syscall"
@@ -20,11 +16,11 @@ import (
 type Process struct {
 	Cmd           *exec.Cmd
 	Conf          *Config
+	Notif         Notifier
 	Pty           *os.File
-	Term          *terminal.Terminal
-	Status        int
+	ioC           *ioContext
 	StatusChannel chan ProcessStatus
-	oldTermState  *terminal.State
+	eofChannel    chan bool
 }
 
 //NewProcess creates a new struct of type *Process and returns its address
@@ -36,7 +32,8 @@ func NewProcess(conf *Config) *Process {
 		cmd = exec.Command(conf.Command)
 	}
 	newStatusChannel := make(chan ProcessStatus, 1)
-	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel}
+
+	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, Notif: Notifier{webHook: conf.WebHook}}
 }
 
 //SetEnvVars sets the environment variables for the launched process
@@ -50,44 +47,13 @@ func (p *Process) SetEnvVars() {
 	}
 }
 
-//SetUser tries to change the current user to newUsername
-func (p *Process) SetUser() error {
-	currentUser, err := user.Current()
-	if err != nil {
-		return errors.New("Can't determine the current user !\n" + err.Error())
-	}
-
-	if p.Conf.UserName == currentUser.Username {
+func (p *Process) Terminate(nbSec int) error {
+	syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
+	time.Sleep(time.Duration(nbSec) * time.Second)
+	if !p.isRunning() {
 		return nil
 	}
-
-	newUser, err := user.Lookup(p.Conf.UserName)
-	if err != nil {
-		return errors.New("Can't find the user" + p.Conf.UserName + "!\n" + err.Error())
-	}
-
-	newUserUID, err := strconv.Atoi(newUser.Uid)
-	if err != nil {
-		return errors.New("Can't determine the new user UID !\n" + err.Error())
-	}
-
-	if err := syscall.Setuid(newUserUID); err != nil {
-		return errors.New("Can't change the user !\n" + err.Error())
-	}
-
-	return nil
-}
-
-func (p *Process) Terminate(maxTryCount int) error {
-	if maxTryCount > 0 {
-		if err := syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM); err == nil {
-			return nil
-		}
-	} else {
-		return syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL)
-	}
-	time.Sleep(100 * time.Millisecond)
-	return p.Terminate(maxTryCount - 1)
+	return syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL)
 }
 
 func (p *Process) isStarted() bool {
@@ -95,135 +61,91 @@ func (p *Process) isStarted() bool {
 }
 
 func (p *Process) isRunning() bool {
-	return p.isStarted() && p.hasBoundPort()
+	if p.Conf.BindPort == 0 {
+		return p.isStarted()
+	} else {
+		return p.isStarted() && p.hasBoundPort()
+	}
 }
 
 func (p *Process) hasBoundPort() bool {
-	if p.Conf.BindPort == 0 {
-		return true
+	//We execute lsof -i :bindPort to find if bindPort is open
+	//For the moment, we only verified that bindPort is used by some process
+	lsofCmd := exec.Command("lsof", "-i", ":"+strconv.Itoa(p.Conf.BindPort))
+
+	lsofBytes, _ := lsofCmd.Output()
+	lsofScanner := bufio.NewScanner(bytes.NewBuffer(lsofBytes))
+	lsofScanner.Scan()
+	lsofScanner.Text()
+	lsofScanner.Scan()
+	lsofResult := lsofScanner.Text()
+	if len(lsofResult) == 0 {
+		return false
 	}
 
-	//We execute netstat -an | grep bindPort to find if bindPort is open
-	netstCmd := exec.Command("netstat", "-an")
-	grepCmd := exec.Command("grep", string(p.Conf.BindPort))
-	netstOut, _ := netstCmd.Output()
-	grepCmd.Stdin = bytes.NewBuffer(netstOut)
-	grepOut, _ := grepCmd.Output()
+	plsofResult := strings.Split(lsofResult, "    ")
 
-	return len(grepOut) > 0
+	plsofResult = strings.Split(plsofResult[1], " ")
+	ownerPid, _ := strconv.Atoi(plsofResult[0])
+	ppids, _ := getPIDs(p.Cmd.Process.Pid)
+	for _, v := range ppids {
+		if v == ownerPid {
+			return true
+		}
+	}
+	return false
 }
 
-func (p *Process) redirectStdin() error {
-	var err error
-	p.oldTermState, err = terminal.MakeRaw(int(os.Stdin.Fd()))
-	if err != nil {
-		return errors.New("Can't redirect stdin:" + err.Error())
-	}
-	newTerminal := terminal.NewTerminal(os.Stdin, "")
-	cb := func(s string, i int, r rune) (string, int, bool) {
-		car := []byte{byte(r)}
-		newTerminal.Write(car)
-		return s, i, false
-	}
-	newTerminal.AutoCompleteCallback = cb
-	go io.Copy(p.Pty, os.Stdin)
-	return nil
-}
+func (p *Process) Start() {
+	initCompleteChannel := make(chan bool)
+	p.eofChannel = make(chan bool, 1)
 
-func (p *Process) restoreStdin() error {
-	err := terminal.Restore(int(os.Stdin.Fd()), p.oldTermState)
-	return err
-}
+	go func() {
+		var startErr error
+		p.Pty, startErr = pty.Start(p.Cmd)
+		if startErr != nil {
+			log.Println(startErr)
+		}
+		initCompleteChannel <- true
 
-func (p *Process) redirectStdout() error {
-	go io.Copy(os.Stdout, p.Pty)
-	return nil
-}
-
-func (p *Process) NotifyStatusChanged() error {
-	if p.Conf.WebHook == "" {
-		return nil
-	}
-	statusStr := ""
-	if p.Status == PROCESS_STARTED {
-		statusStr = "started"
-	} else if p.Status == PROCESS_RUNNING {
-		statusStr = "running"
-	} else {
-		statusStr = "stopped"
-	}
-	body := `{
-							"ps":
-								{ "status":` + statusStr + `}
-						}`
-
-	req, err := http.NewRequest("PUT", p.Conf.WebHook, bytes.NewBufferString(body))
-	if err != nil {
-		return errors.New("Failed to construct the HTTP request" + err.Error())
-	}
-
-	req.Header.Add("Content-Type", "application/json")
-	client := &http.Client{}
-
-	resp, err := client.Do(req)
-	defer resp.Body.Close()
-	if err != nil {
-		return errors.New("Was not able to trigger the hook!\n" + err.Error())
-	}
-	return nil
-}
-
-func (p *Process) Start() error {
-	//We start the process
-	var startErr error
-	p.Pty, startErr = pty.Start(p.Cmd)
-	if startErr != nil {
-		return startErr
-	}
+		err := p.Cmd.Wait()
+		if err != nil {
+			log.Println(err)
+			p.Notif.Notify(PROCESS_STOPPED)
+			p.Terminate(5)
+		}
+		_ = <-p.eofChannel
+		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
+			log.Println(err)
+		}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: nil}
+	}()
 
 	go func() {
 		var err error
-		if err = p.redirectStdin(); err != nil {
+		_ = <-initCompleteChannel
+
+		p.ioC, err = newIOContext(p.Conf.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
+			p.StatusChannel, p.eofChannel)
+		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
-		if err = p.redirectStdout(); err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
-		}
+		defer p.ioC.restoreIO()
 
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
 		}
-		p.Status = PROCESS_STARTED
-		if err = p.NotifyStatusChanged(); err != nil {
+		if err = p.Notif.Notify(PROCESS_STARTED); err != nil {
 			log.Println(err)
 		}
-		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_STARTED, Err: nil}
 
 		for p.isRunning() == false {
 			time.Sleep(100 * time.Millisecond)
 		}
-		p.Status = PROCESS_RUNNING
-		if err = p.NotifyStatusChanged(); err != nil {
+		if err = p.Notif.Notify(PROCESS_RUNNING); err != nil {
 			log.Println(err)
 		}
-		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
-
-		err = p.Cmd.Wait()
-		if err != nil {
-			p.restoreStdin()
-			p.Status = PROCESS_STOPPED
-			p.NotifyStatusChanged()
-			log.Fatal(err)
-		}
-
-		//p has stopped
-		p.restoreStdin()
-		p.Status = PROCESS_STOPPED
-		if err = p.NotifyStatusChanged(); err != nil {
-			log.Println(err)
-		}
-		p.StatusChannel <- ProcessStatus{Status: p.Status, Err: nil}
+		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
 	}()
-
-	return nil
 }
