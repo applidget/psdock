@@ -35,6 +35,9 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 			return nil, err
 		}
 		result = r.log
+	} else {
+		//default case, the protocol is not supported
+		return nil, errors.New("The protocol " + url.Scheme + " is not supported")
 	}
 	return result, nil
 }
