@@ -7,6 +7,7 @@ import (
 
 func main() {
 	conf, err := psdock.ParseArgs()
+
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -3,6 +3,8 @@ package psdock
 import (
 	"errors"
 	"flag"
+	"github.com/BurntSushi/toml"
+	"os"
 	"os/user"
 	"strings"
 )
@@ -30,11 +32,12 @@ type Config struct {
 	UserName    string
 }
 
-//ParseConfig parses command-line Config and returns them in an Config struct
+//ParseArgs parses command-line Config and returns them in an Config struct
 func ParseArgs() (*Config, error) {
 	parsedConfig := Config{}
+	var tomlConfigFilename string
 
-	flag.StringVar(&parsedConfig.Command, "process", "", "process to be executed by psdock")
+	flag.StringVar(&parsedConfig.Command, "command", "", "command to be executed by psdock")
 	flag.StringVar(&parsedConfig.Stdout, "stdout", "os.Stdout", "redirection path for the stdout/stderr of the launched process")
 	flag.StringVar(&parsedConfig.LogRotation, "log-rotation", "daily", "lifetime of a single log file.")
 	flag.StringVar(&parsedConfig.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
@@ -43,6 +46,7 @@ func ParseArgs() (*Config, error) {
 	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
 	flag.StringVar(&parsedConfig.Stdin, "stdin", "os.Stdin", "url used to read stdin")
+	flag.StringVar(&tomlConfigFilename, "c", "", "filename of the toml file used to read the config")
 
 	//Retrieve the name of the current user. Will be used as a default value for user-name
 	user, err := user.Current()
@@ -52,6 +56,17 @@ func ParseArgs() (*Config, error) {
 	flag.StringVar(&parsedConfig.UserName, "user-name", user.Username, "name of the user launching the process")
 
 	flag.Parse()
+
+	if tomlConfigFilename != "" {
+		if len(os.Args) != 3 {
+			return nil, errors.New("If a toml config file is given, you can't specify other arguments!")
+		}
+		err := parseTOML(&parsedConfig, tomlConfigFilename)
+		if err != nil {
+			return nil, errors.New("Can't parse TOML file:" + err.Error())
+		}
+	}
+
 	//The user has to specify a process to run
 	if parsedConfig.Command == "" {
 		flag.PrintDefaults()
@@ -92,4 +107,12 @@ func ParseArgs() (*Config, error) {
 	}
 
 	return &parsedConfig, nil
+}
+
+//parseTOML parses a toml file in conf
+func parseTOML(conf *Config, filename string) error {
+	if _, err := toml.DecodeFile(filename, conf); err != nil {
+		return err
+	}
+	return nil
 }
