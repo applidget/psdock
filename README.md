@@ -42,9 +42,12 @@ In order to read the arguments from a TOML file :
   `psdock -c config.toml`
   
   config.toml:
-  `
+  
+  `````toml
   command = "nc -l 8080"
   webhook = "http://distantUrl:80"
   bindport = 8080
   logprefix= "NETCAT"
+  `````
+  
   
