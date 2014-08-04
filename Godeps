@@ -8,6 +8,10 @@
 			"Rev": "aa2644fe4aa50e3b38d75187b4799b1f0c9ddcef"
 		},
 		{
+			"ImportPath": "github.com/BurntSushi/toml",
+			"Rev": "2ceedfee35ad3848e49308ab0c9a4f640cfb5fb2"
+		},
+		{
 			"ImportPath": "github.com/kr/pty",
 			"Comment": "release.r56-19-g67e2db2",
 			"Rev": "67e2db24c831afa6c64fc17b4a143390674365ef"
