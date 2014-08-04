@@ -28,7 +28,7 @@ Example :
 Flags :  
   * --process : process to be executed by psdock  
   * --stdout : redirection path for the stdout/stderr of the launched process (stdout by default)  
-  * --log-rotation : lifetime of a single log file. Can be "hourly", "daily" (default), "monthly" or "weekly"  
+  * --log-rotation : lifetime of a single log file. Can be "minutely", "hourly", "weekly" (default) or "daily"  
   * --log-prefix : prefix for logging the output of the launched process  
   * --env-vars : arguments passed to the launched command. They have to be passed as *"KEY1=value1 KEY2=value2"*.  
   * --bind-port : port to be watched for binding by psdock  

@@ -1,6 +1,7 @@
 package psdock
 
 import (
+	"bufio"
 	"compress/gzip"
 	"io/ioutil"
 	"log"
@@ -45,7 +46,7 @@ func (flg *fileLogger) openFirstOutputFile() error {
 			f, err = os.OpenFile(name, os.O_WRONLY|os.O_APPEND, 0600)
 			if err != nil {
 				//We don't return here since we can try to open other files
-				log.Print(err.Error())
+				log.Println(err)
 			} else {
 				flg.log.output = f
 				flg.previousName = name
@@ -102,11 +103,12 @@ func compressOldOutput(oldFile string) error {
 	defer file.Close()
 	gWriter := gzip.NewWriter(file)
 	defer gWriter.Close()
-	fileContent, err := ioutil.ReadFile(oldFile)
+	oldFileOpened, err := os.Open(oldFile)
 	if err != nil {
 		return err
 	}
-	if _, err = gWriter.Write(fileContent); err != nil {
+	bufReader := bufio.NewReader(oldFileOpened)
+	if _, err = bufReader.WriteTo(gWriter); err != nil {
 		return err
 	}
 	if err = gWriter.Flush(); err != nil {

@@ -18,7 +18,7 @@ type Process struct {
 	Conf          *Config
 	Notif         Notifier
 	Pty           *os.File
-	ioInfo        *ioStruct
+	ioC           *ioContext
 	StatusChannel chan ProcessStatus
 	eofChannel    chan bool
 }
@@ -125,12 +125,12 @@ func (p *Process) Start() {
 		var err error
 		_ = <-initCompleteChannel
 
-		p.ioInfo, err = newIOStruct(p.Conf.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
+		p.ioC, err = newIOContext(p.Conf.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
 			p.StatusChannel, p.eofChannel)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
-		defer p.ioInfo.restoreIO()
+		defer p.ioC.restoreIO()
 
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)

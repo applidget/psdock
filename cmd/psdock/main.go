@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/applidget/psdock"
 	"log"
 )
@@ -25,7 +24,7 @@ func main() {
 		if status.Err != nil {
 			//Should an error occur, we want to kill the process
 			ps.Notif.Notify(psdock.PROCESS_STOPPED)
-			fmt.Println(status.Err)
+			log.Println(status.Err)
 			termErr := ps.Terminate(5)
 			log.Println(status.Err)
 			log.Println(termErr)
