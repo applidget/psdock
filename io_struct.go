@@ -3,7 +3,6 @@ package psdock
 import (
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"errors"
-	//"fmt"
 	"io"
 	"net"
 	"net/url"
