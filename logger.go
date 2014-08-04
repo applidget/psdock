@@ -2,6 +2,7 @@ package psdock
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	logLib "log"
 	"net/url"
@@ -17,8 +18,7 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 	var result *Logger
 	if url.Path == "os.Stdout" {
 		result = &Logger{output: os.Stdout, prefix: prefix}
-	}
-	if url.Scheme == "file" {
+	} else if url.Scheme == "file" {
 		var err error
 		r, err := NewFileLogger(url.Host+url.Path, prefix, lRotation, statusChannel)
 		if err != nil {

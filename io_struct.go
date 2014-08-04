@@ -3,7 +3,9 @@ package psdock
 import (
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"errors"
+	//"fmt"
 	"io"
+	"net"
 	"net/url"
 	"os"
 )
@@ -18,7 +20,7 @@ type ioStruct struct {
 func newIOStruct(stdinStr string, pty *os.File, stdout, logPrefix, logRotation, logColor string,
 	statusChannel chan ProcessStatus, eofChannel chan bool) (*ioStruct, error) {
 	var err error
-	result := &ioStruct{stdinOutput: newStdin}
+	result := &ioStruct{}
 
 	if err = result.redirectStdin(pty, stdinStr); err != nil {
 		return nil, errors.New("Can't redirect stdin:" + err.Error())
@@ -37,29 +39,40 @@ func (ioS *ioStruct) restoreIO() error {
 }
 
 func (ioS *ioStruct) redirectStdin(pty *os.File, stdinStr string) error {
-	var stdin *os.File
 	url, err := url.Parse(stdinStr)
 	if err != nil {
 		return err
 	}
 	if url.Path == "os.Stdin" {
-		newStdin = os.Stdin
-	} else if url.Scheme == "tcp"{
-		//A completer, avec la verif dans config.go
-		if url.P
-	ioS.oldTermState, err = terminal.MakeRaw(int(newStdin.Fd()))
+		//We don't need to do anything here
+	} else if url.Scheme == "tcp" {
+		conn, err := net.Dial("tcp", url.Host+url.Path)
+		if err != nil {
+			return err
+		}
+		//Directly copy from the connection to the pty. Escape chars won't be available
+		go io.Copy(pty, conn)
+	} else {
+		//default case, the protocol is not supported
+		return errors.New("The protocol " + url.Scheme + " is not supported")
+	}
+	ioS.stdinOutput = os.Stdin
+
+	//Set up the tty
+	ioS.oldTermState, err = terminal.MakeRaw(int(ioS.stdinOutput.Fd()))
 	if err != nil {
 		return errors.New("Can't create terminal:" + err.Error())
 	}
-	ioS.term = terminal.NewTerminal(newStdin, "")
+	ioS.term = terminal.NewTerminal(ioS.stdinOutput, "")
 	cb := func(s string, i int, r rune) (string, int, bool) {
 		car := []byte{byte(r)}
-		result.term.Write(car)
+		ioS.term.Write(car)
 		return s, i, false
 	}
 	ioS.term.AutoCompleteCallback = cb
 
-	go io.Copy(pty, newStdin)
+	//Copy everything from os.Stdin to the pty
+	go io.Copy(pty, ioS.stdinOutput)
 
 	return nil
 }
