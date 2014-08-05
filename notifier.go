@@ -36,9 +36,10 @@ func (n Notifier) Notify(status int) error {
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
 		return errors.New("Was not able to trigger the hook!\n" + err.Error())
 	}
+	defer resp.Body.Close()
+
 	return nil
 }

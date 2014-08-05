@@ -50,6 +50,11 @@ func (p *Process) SetEnvVars() {
 func (p *Process) Terminate(nbSec int) error {
 	defer p.ioC.restoreIO()
 	syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
+
+	time.Sleep(time.Second)
+	if !p.isRunning() {
+		return nil
+	}
 	time.Sleep(time.Duration(nbSec) * time.Second)
 	if !p.isRunning() {
 		return nil
@@ -99,6 +104,7 @@ func (p *Process) hasBoundPort() bool {
 
 func (p *Process) Start() {
 	initCompleteChannel := make(chan bool)
+	runningMessChannel := make(chan bool)
 	p.eofChannel = make(chan bool, 1)
 
 	go func() {
@@ -108,7 +114,7 @@ func (p *Process) Start() {
 			log.Println(startErr)
 		}
 		initCompleteChannel <- true
-
+		_ = <-runningMessChannel
 		err := p.Cmd.Wait()
 		if err != nil {
 			log.Println(err)
@@ -119,6 +125,7 @@ func (p *Process) Start() {
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
 		}
+		p.ioC.restoreIO()
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: nil}
 	}()
 
@@ -131,7 +138,6 @@ func (p *Process) Start() {
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
-		defer p.ioC.restoreIO()
 
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
@@ -148,5 +154,6 @@ func (p *Process) Start() {
 			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
+		runningMessChannel <- true
 	}()
 }
