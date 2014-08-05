@@ -55,6 +55,11 @@ func (log *Logger) startCopy(pty *os.File, eofChannel chan bool, ioC *ioContext,
 			return
 		}
 		if err != nil {
+			if err.Error() == "read /dev/ptmx: input/output error" {
+				//hack to make it work in a container
+				eofChannel <- true
+				return
+			}
 			logLib.Println("erreur")
 			logLib.Println(err)
 			break

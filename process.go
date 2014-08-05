@@ -48,6 +48,7 @@ func (p *Process) SetEnvVars() {
 }
 
 func (p *Process) Terminate(nbSec int) error {
+	defer p.ioC.restoreIO()
 	syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
 	time.Sleep(time.Duration(nbSec) * time.Second)
 	if !p.isRunning() {
