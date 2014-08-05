@@ -33,7 +33,11 @@ func newIOContext(stdinStr string, pty *os.File, stdout, logPrefix, logRotation,
 }
 
 func (ioC *ioContext) restoreIO() error {
+	if ioC.oldTermState == nil {
+		return nil
+	}
 	err := terminal.Restore(int(ioC.stdinOutput.Fd()), ioC.oldTermState)
+	ioC.oldTermState = nil
 	return err
 }
 
