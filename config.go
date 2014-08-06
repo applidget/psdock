@@ -68,6 +68,15 @@ func ParseArgs() (*Config, error) {
 		}
 	}
 
+	//We haven't specified a file with the -c command. Let's still try to open PSDOCK_CFG_FILEPATH
+	if len(os.Args) == 1 {
+		if _, err = os.Stat(PSDOCK_CFG_FILEPATH); err == nil {
+			err = parseTOML(&parsedConfig, PSDOCK_CFG_FILEPATH)
+			if err != nil {
+				return nil, errors.New("Can't parse TOML file:" + err.Error())
+			}
+		}
+	}
 	//The user has to specify a process to run
 	if parsedConfig.Command == "" {
 		flag.PrintDefaults()
