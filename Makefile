@@ -7,7 +7,7 @@ build: psdock
 psdock: check_env
 	godep go build
 	godep go install ./cmd/psdock/
- 
+	godep go install ./cmd/psdock-init/ 
 
 check_env:
 ifndef GOPATH
