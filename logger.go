@@ -10,8 +10,9 @@ import (
 )
 
 type Logger struct {
-	output io.WriteCloser
-	prefix string
+	output          io.WriteCloser
+	prefix          string
+	writePrefixNext bool
 }
 
 func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan ProcessStatus) (*Logger, error) {
@@ -42,6 +43,8 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 	return result, nil
 }
 
+//startCopy copies the stdout from pty to the file pointed at by log.output.
+//When a reading error is raised, or the EOF symbol is read, the eofChannel is trigerred
 func (log *Logger) startCopy(pty *os.File, eofChannel chan bool, ioC *ioContext, color string) {
 	var err error
 	if err = log.writePrefix(color, ioC); err != nil {
@@ -64,6 +67,12 @@ func (log *Logger) startCopy(pty *os.File, eofChannel chan bool, ioC *ioContext,
 			logLib.Println(err)
 			break
 		}
+		if log.writePrefixNext {
+			if err = log.writePrefix(color, ioC); err != nil {
+				logLib.Println(err)
+			}
+			log.writePrefixNext = false
+		}
 		_, err = log.output.Write([]byte{byte(rune)})
 		if err != nil {
 			logLib.Println("erreur")
@@ -71,13 +80,12 @@ func (log *Logger) startCopy(pty *os.File, eofChannel chan bool, ioC *ioContext,
 			break
 		}
 		if rune == EOL { //If we just read an end-of-line, write the prefix
-			if err = log.writePrefix(color, ioC); err != nil {
-				logLib.Println(err)
-			}
+			log.writePrefixNext = true
 		}
 	}
 }
 
+//writePrefix writes the prefix on the stdout
 func (log *Logger) writePrefix(color string, ioC *ioContext) error {
 	var err error
 

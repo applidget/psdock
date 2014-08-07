@@ -119,7 +119,7 @@ func ParseArgs() (*Config, error) {
 	return &parsedConfig, nil
 }
 
-//parseTOML parses a toml file in conf
+//parseTOML parses a toml file and fills conf
 func parseTOML(conf *Config, filename string) error {
 	if _, err := toml.DecodeFile(filename, conf); err != nil {
 		return err

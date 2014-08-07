@@ -47,8 +47,13 @@ func (p *Process) SetEnvVars() {
 	}
 }
 
+//Terminate sends a SIGETRM signal, then waits nbSec seconds before sending a SIGKILL if necessary.
+//p.ioC.restoreIO() will be called at the end of the function
 func (p *Process) Terminate(nbSec int) error {
 	defer p.ioC.restoreIO()
+	if !p.isRunning() {
+		return nil
+	}
 	syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
 
 	time.Sleep(time.Second)
@@ -62,10 +67,12 @@ func (p *Process) Terminate(nbSec int) error {
 	return syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL)
 }
 
+//returns true if p is started
 func (p *Process) isStarted() bool {
 	return p.Cmd.Process != nil
 }
 
+//returns true if p is running
 func (p *Process) isRunning() bool {
 	if p.Conf.BindPort == 0 {
 		return p.isStarted()
@@ -74,6 +81,7 @@ func (p *Process) isRunning() bool {
 	}
 }
 
+//returns true if p has bound its port
 func (p *Process) hasBoundPort() bool {
 	//We execute lsof -i :bindPort to find if bindPort is open
 	//For the moment, we only verified that bindPort is used by some process
@@ -111,7 +119,7 @@ func (p *Process) Start() {
 		var startErr error
 		p.Pty, startErr = pty.Start(p.Cmd)
 		if startErr != nil {
-			log.Println(startErr)
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: startErr}
 		}
 		initCompleteChannel <- true
 		_ = <-runningMessChannel

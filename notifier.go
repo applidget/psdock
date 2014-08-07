@@ -10,6 +10,7 @@ type Notifier struct {
 	webHook string
 }
 
+//Notify sends a PUT request to the hook in order to trigger it
 func (n Notifier) Notify(status int) error {
 	if n.webHook == "" {
 		return nil
