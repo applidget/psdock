@@ -30,8 +30,8 @@ func NewFileLogger(fName, prfx, lRotation string, statusChannel chan ProcessStat
 	return &result, nil
 }
 
-//retrieveFilenames returns the list of the .log files in the directory containing filename
-func retrieveLogFilenames(filename string) ([]string, error) {
+//retrieveFilenames returns the list of the .ext files in the directory containing filename
+func retrieveFilenames(filename, extension string) ([]string, error) {
 	dirName := filepath.Dir(filename)
 	fls, err := ioutil.ReadDir(dirName)
 	if err != nil {
@@ -41,7 +41,7 @@ func retrieveLogFilenames(filename string) ([]string, error) {
 
 	//Construct the list of log filenames
 	for _, fileinfo := range fls {
-		if !fileinfo.IsDir() && filepath.Ext(fileinfo.Name()) == ".log" {
+		if !fileinfo.IsDir() && filepath.Ext(fileinfo.Name()) == extension {
 			filenames = append(filenames, dirName+"/"+fileinfo.Name())
 		}
 	}
@@ -61,15 +61,13 @@ func constructNewLogFilenames(filenames []string, tNow time.Time, lifetime time.
 
 //openFirstOutputFile opens a file in in which the child's stdout will be written
 func (flg *fileLogger) openFirstOutputFile() error {
-	//We have to check if one of the files is a log whose start date is less than time.Now()-lifetime.
-	//If that's the case, we use that file
 	lifetime := convertLogRToDuration(flg.logRotation)
 
 	var f *os.File
 	var fName string
 
 	tNow := time.Now()
-	filenames, err := retrieveLogFilenames(flg.filename)
+	filenames, err := retrieveFilenames(flg.filename, ".log")
 	if err != nil {
 		return err
 	}
@@ -100,10 +98,25 @@ func (flg *fileLogger) manageLogRotation(statusChannel chan ProcessStatus) {
 	for {
 		_ = <-ticker.C
 		//Open the new stdout file
-		filenames, err := retrieveLogFilenames(flg.filename)
+		filenames, err := retrieveFilenames(flg.filename, ".log")
 		if err != nil {
 			statusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
+
+		//Delete old files
+		archiveFilenames, err := retrieveFilenames(flg.filename, ".gz")
+		if err != nil {
+			statusChannel <- ProcessStatus{Status: -1, Err: err}
+		}
+		if len(archiveFilenames) > 5 {
+			filenamesToDelete := archiveFilenames[5:]
+			for _, fName := range filenamesToDelete {
+				if err := os.Remove(fName); err != nil {
+					log.Println("Can't delete " + fName + ":" + err.Error())
+				}
+			}
+		}
+
 		sort.Sort(sort.Reverse(sort.StringSlice(constructNewLogFilenames(filenames, time.Now(), lifetime, flg.previousName))))
 		if err != nil {
 			statusChannel <- ProcessStatus{Status: -1, Err: err}
