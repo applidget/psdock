@@ -81,13 +81,15 @@ func (p *Process) isRunning() bool {
 	}
 }
 
-//returns true if p has bound its port
+//hasBoundPort returns true if p has bound its port
 func (p *Process) hasBoundPort() bool {
 	//We execute lsof -i :bindPort to find if bindPort is open
-	//For the moment, we only verified that bindPort is used by some process
 	lsofCmd := exec.Command("lsof", "-i", ":"+strconv.Itoa(p.Conf.BindPort))
-
 	lsofBytes, _ := lsofCmd.Output()
+	return parseLsof(lsofBytes, p.Cmd.Process.Pid, getPIDs)
+}
+
+func parseLsof(lsofBytes []byte, pid int, retrievePIDs func(int) ([]int, error)) bool {
 	lsofScanner := bufio.NewScanner(bytes.NewBuffer(lsofBytes))
 	lsofScanner.Scan()
 	lsofScanner.Text()
@@ -101,8 +103,10 @@ func (p *Process) hasBoundPort() bool {
 
 	plsofResult = strings.Split(plsofResult[1], " ")
 	ownerPid, _ := strconv.Atoi(plsofResult[0])
-	ppids, _ := getPIDs(p.Cmd.Process.Pid)
+	ppids, _ := retrievePIDs(pid)
 	for _, v := range ppids {
+		log.Println(v)
+		log.Println(ownerPid)
 		if v == ownerPid {
 			return true
 		}

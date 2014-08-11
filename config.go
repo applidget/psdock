@@ -43,7 +43,7 @@ func ParseArgs() (*Config, error) {
 	flag.StringVar(&parsedConfig.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
 	flag.StringVar(&parsedConfig.LogColor, "log-color", "black", "color for logging the output of the launched process")
 	flag.StringVar(&parsedConfig.EnvVars, "env-vars", "", "Config passed to the launched command")
-	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
+	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock (0 means no port is monitored)")
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
 	flag.StringVar(&parsedConfig.Stdin, "stdin", "os.Stdin", "url used to read stdin")
 	flag.StringVar(&tomlConfigFilename, "c", "", "filename of the toml file used to read the config")

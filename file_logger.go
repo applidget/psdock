@@ -75,7 +75,12 @@ func (flg *fileLogger) openFirstOutputFile() error {
 	//Construct the list of possible new log filenames
 	possibleLogFilenames := constructNewLogFilenames(filenames, tNow, lifetime, flg.filename)
 	for _, fName = range possibleLogFilenames {
-		f, err = os.OpenFile(fName, os.O_WRONLY|os.O_APPEND, 0600)
+		if _, err := os.Stat(fName); err == nil {
+			//File exists
+			f, err = os.OpenFile(fName, os.O_WRONLY|os.O_APPEND, 0600)
+		} else {
+			f, err = os.Create(fName)
+		}
 		if err != nil {
 			//We don't return here since we can try to open other files
 			log.Println(err)
@@ -104,16 +109,13 @@ func (flg *fileLogger) manageLogRotation(statusChannel chan ProcessStatus) {
 		}
 
 		//Delete old files
-		archiveFilenames, err := retrieveFilenames(flg.filename, ".gz")
+		filenamesToDelete, err := getFilenamesToDelete(flg.filename, 5)
 		if err != nil {
 			statusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
-		if len(archiveFilenames) > 5 {
-			filenamesToDelete := archiveFilenames[5:]
-			for _, fName := range filenamesToDelete {
-				if err := os.Remove(fName); err != nil {
-					log.Println("Can't delete " + fName + ":" + err.Error())
-				}
+		for _, fName := range filenamesToDelete {
+			if err := os.Remove(fName); err != nil {
+				log.Println("Can't delete " + fName + ":" + err.Error())
 			}
 		}
 
@@ -197,4 +199,19 @@ func convertLogRToDuration(lifetime string) time.Duration {
 		return time.Hour * 24 * 7
 	}
 	return -1
+}
+
+func getFiveLast(filename string, nbFiles int, functor func(string, string) ([]string, error)) ([]string, error) {
+	archiveFilenames, err := functor(filename, ".gz")
+	if err != nil {
+		return []string{}, err
+	}
+	if len(archiveFilenames) > nbFiles {
+		return archiveFilenames[nbFiles:], nil
+	}
+	return []string{}, nil
+}
+
+func getFilenamesToDelete(filename string, nbFiles int) ([]string, error) {
+	return getFiveLast(filename, nbFiles, retrieveFilenames)
 }
