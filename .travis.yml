@@ -2,4 +2,3 @@ language: go
 
 install:
 - go get github.com/kr/godep
-- export PATH = $PATH:$GOPATH/bin
