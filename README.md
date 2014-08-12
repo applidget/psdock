@@ -28,7 +28,7 @@ Example :
 
 Flags :  
   * `--command` : command to be executed by psdock  
-  * `--stdout` : redirection path for the stdout/stderr of the launched process (stdout by default). Can alse be a file (`"file:///home/ubuntu/logs/netcat.log"`) or a TCP socket (`"tcp://server:1337"`)
+  * `--stdout` : redirection path for the stdout/stderr of the launched process (`"os.Stdout"` by default). Can alse be a file (`"file:///home/ubuntu/logs/netcat.log"`) or a TCP socket (`"tcp://server:1337"`)
   * `--log-rotation` : lifetime of a single log file. Can be `"minutely"`, `"daily"` (default), `"hourly"` or `"weekly"`
   * `--log-prefix` : prefix for logging the output of the launched process
   * `--log-color` : color of the prefix. Can be `"black"` (default), `"white"`, `"red"`, `"green"`, `"blue"`, `"yellow"`, `"cyan"` or `"magenta"`
