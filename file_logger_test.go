@@ -66,7 +66,7 @@ func TestGetFiveLast(t *testing.T) {
 	if len(fToDelete) != 2 {
 		t.Error("fToDelete should be of length 2 not " + strconv.Itoa(len(fToDelete)))
 	}
-	if fToDelete[0] != "archive.2005-01-02-16-34.gz" /*|| fToDelete[1] != "archive.2006-01-02-16-34.gz"*/ {
+	if fToDelete[0] != "archive.2005-01-02-16-34.gz" || fToDelete[1] != "archive.2006-01-02-16-34.gz" {
 		t.Error("Got:" + fToDelete[0] + "," + fToDelete[1])
 		t.Error("Expected:{\"archive.2005-01-02-16-34.gz\", \"archive.2006-01-02-16-34.gz\"}")
 	}

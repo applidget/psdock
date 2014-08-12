@@ -19,14 +19,9 @@ import (
 	"time"
 )
 
-func runnerForTesting() {
-	os.Args = []string{"psdock", "--command", "ls"}
-	conf, err := ParseArgs()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func runnerForTesting(conf *Config) {
+	var err error
+	SetNetwork()
 	p := NewProcess(conf)
 	if err = SetUser(p.Conf.UserName); err != nil {
 		log.Fatal(err)
@@ -46,6 +41,7 @@ func runnerForTesting() {
 		initCompleteChannel <- true
 		_ = <-runningMessChannel
 		err := p.Cmd.Wait()
+
 		if err != nil {
 			log.Println(err)
 			p.Notif.Notify(PROCESS_STOPPED)
@@ -110,10 +106,11 @@ func runnerForTesting() {
 		go io.Copy(pty, p.ioC.stdinOutput)
 
 		//Write all the color symbols
-		colors := []string{"magenta", "white", "red", "blue", "green", "yellow", "cyan"}
+		colors := []string{"magenta", "white", "red", "blue", "green", "yellow", "cyan", "black"}
 		for _, color := range colors {
 			p.ioC.setTerminalColor(color)
 		}
+
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -170,7 +167,13 @@ func TestPsdock(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	runnerForTesting()
+	os.Args = []string{"psdock", "--command", "ls"}
+	conf, err := ParseArgs()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	runnerForTesting(conf)
 
 	outC := make(chan string)
 	go func() {
@@ -204,141 +207,16 @@ func TestPsdock(t *testing.T) {
 	}
 }
 
-func runnerForTestingWithFileOutputWebHookAndPrefix(s string) {
-	conf := &Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "[PRFX]",
-		EnvVars: "MYKEY = myval", BindPort: 0, Stdin: "os.Stdin", UserName: "root", WebHook: "http://192.168.0.100:1337"}
-
-	var err error
-
-	p := NewProcess(conf)
-	if err = SetUser(p.Conf.UserName); err != nil {
-		log.Fatal(err)
-	}
-	p.SetEnvVars()
-
-	initCompleteChannel := make(chan bool)
-	runningMessChannel := make(chan bool)
-	p.eofChannel = make(chan bool, 1)
-
-	go func() {
-		var startErr error
-		p.Pty, startErr = pty.Start(p.Cmd)
-		if startErr != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: startErr}
-		}
-		initCompleteChannel <- true
-		_ = <-runningMessChannel
-		err := p.Cmd.Wait()
-		if err != nil {
-			log.Println(err)
-			p.Notif.Notify(PROCESS_STOPPED)
-			p.Terminate(5)
-		}
-		_ = <-p.eofChannel
-		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
-			log.Println(err)
-		}
-		p.ioC.restoreIO()
-		p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: nil}
-	}()
-
-	go func() {
-		var err error
-		_ = <-initCompleteChannel
-
-		p.ioC = &ioContext{}
-		err = p.ioC.redirectStdout(p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor, p.StatusChannel, p.eofChannel)
-		if err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
-		}
-		pty := p.Pty
-		stdinStr := p.Conf.Stdin
-		statusChannel := p.StatusChannel
-
-		url, err := url.Parse(stdinStr)
-		if err != nil {
-			log.Println(err)
-		}
-		if url.Path == "os.Stdin" {
-			//We don't need to do anything here
-		} else if url.Scheme == "tcp" {
-			conn, err := net.Dial("tcp", url.Host+url.Path)
-			if err != nil {
-				log.Println(err)
-			}
-			//Directly copy from the connection to the pty. Escape chars won't be available
-			go func() {
-				io.Copy(pty, conn)
-				//When the remote stdin closes, terminate the process through the status Channel
-				statusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: errors.New("Remote stdin closed")}
-			}()
-		} else {
-			//default case, the protocol is not supported
-			log.Println("The protocol " + url.Scheme + " is not supported")
-		}
-		p.ioC.stdinOutput = os.Stdin
-
-		if err != nil {
-			log.Println("Can't create terminal:" + err.Error())
-		}
-		p.ioC.term = terminal.NewTerminal(p.ioC.stdinOutput, "")
-		cb := func(s string, i int, r rune) (string, int, bool) {
-			car := []byte{byte(r)}
-			p.ioC.term.Write(car)
-			return s, i, false
-		}
-		p.ioC.term.AutoCompleteCallback = cb
-
-		//Copy everything from os.Stdin to the pty
-		go io.Copy(pty, p.ioC.stdinOutput)
-
-		for !p.isStarted() {
-			time.Sleep(100 * time.Millisecond)
-		}
-		if err = p.Notif.Notify(PROCESS_STARTED); err != nil {
-			log.Println(err)
-		}
-		p.StatusChannel <- ProcessStatus{Status: PROCESS_STARTED, Err: nil}
-
-		for p.isRunning() == false {
-			time.Sleep(100 * time.Millisecond)
-		}
-		if err = p.Notif.Notify(PROCESS_RUNNING); err != nil {
-			log.Println(err)
-		}
-		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
-		runningMessChannel <- true
-	}()
-
-	for {
-		status := <-p.StatusChannel
-		if status.Err != nil {
-			//Should an error occur, we want to kill the process
-			p.Notif.Notify(PROCESS_STOPPED)
-			log.Println(status.Err)
-			termErr := p.Terminate(5)
-			log.Println(status.Err)
-			log.Println(termErr)
-			return
-		}
-		switch status.Status {
-		case PROCESS_STARTED:
-			go ManageSignals(p)
-		case PROCESS_RUNNING:
-
-		case PROCESS_STOPPED:
-			//If we arrive here, process is already stopped, and this has been notified
-			return
-		}
-	}
-}
-
 func TestPsdockFileOutput(t *testing.T) {
 	s := "file://mylog"
-	runnerForTestingWithFileOutputWebHookAndPrefix(s)
+	conf := &Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "[PRFX]",
+		EnvVars: "MYKEY = myval", BindPort: 0, Stdin: "os.Stdin", UserName: "root", WebHook: "http://www.google.fr"}
+
+	runnerForTesting(conf)
 	fn, _ := retrieveFilenames("mylog", ".log")
 	s = fn[0]
 	cmd := exec.Command("ls")
+	defer os.Remove(s[2:])
 	boutLs, _ := cmd.Output()
 	outLs := string(boutLs)
 	outLs = strings.Replace(outLs, "\n", " ", -1)
@@ -371,10 +249,7 @@ func TestPsdockFileOutput(t *testing.T) {
 	}
 }
 
-func runnerForTestingWithTCPOutput(s string) {
-	conf := &Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "",
-		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "root", WebHook: "http://192.168.0.100	:1337"}
-
+func runnerForTestingWithTCPOutput(conf *Config) {
 	var err error
 
 	p := NewProcess(conf)
@@ -511,7 +386,9 @@ func TestPsdockTCPOutput(t *testing.T) {
 	stdout, _ := nc.StdoutPipe()
 	nc.Start()
 	time.Sleep(time.Second)
-	runnerForTestingWithTCPOutput(s)
+	conf := Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "",
+		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "root", WebHook: "http://www.google.fr"}
+	runnerForTestingWithTCPOutput(&conf)
 
 	psdockStr, _ := ioutil.ReadAll(stdout)
 	lsScanner := bufio.NewScanner(strings.NewReader(outLs))
@@ -535,4 +412,15 @@ func TestPsdockTCPOutput(t *testing.T) {
 	if psdockSpliceResultStr != lsSpliceResultStr {
 		t.Error("Expected" + lsSpliceResultStr + ", got:" + psdockSpliceResultStr)
 	}
+}
+
+func TestLogRotate(t *testing.T) {
+	s := "file://mylog"
+	conf := &Config{Command: "sleep", Args: "70", Stdout: s, LogRotation: "minutely", LogColor: "black", LogPrefix: "",
+		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "root", WebHook: ""}
+
+	runnerForTesting(conf)
+	fn, _ := retrieveFilenames("mylog", ".gz")
+	s = fn[0]
+	os.Remove(s[2:])
 }

@@ -47,7 +47,7 @@ func (p *Process) SetEnvVars() {
 	}
 }
 
-//Terminate sends a SIGETRM signal, then waits nbSec seconds before sending a SIGKILL if necessary.
+//Terminate sends a SIGTERM signal, then waits nbSec seconds before sending a SIGKILL if necessary.
 //p.ioC.restoreIO() will be called at the end of the function
 func (p *Process) Terminate(nbSec int) error {
 	defer p.ioC.restoreIO()
@@ -105,8 +105,6 @@ func parseLsof(lsofBytes []byte, pid int, retrievePIDs func(int) ([]int, error))
 	ownerPid, _ := strconv.Atoi(plsofResult[0])
 	ppids, _ := retrievePIDs(pid)
 	for _, v := range ppids {
-		log.Println(v)
-		log.Println(ownerPid)
 		if v == ownerPid {
 			return true
 		}
