@@ -11,9 +11,8 @@ A simple tool to launch and monitor processes.
 1) Make sure $GOPATH/bin is in your path and install godep  
 `go get github.com/kr/godep`  
 `export PATH=$PATH:$GOPATH/bin`  
-2) Install psdock  
+2) Get psdock and install it  
 `go get github.com/applidget/psdock`  
-3) Build psdock  
 `cd $GOPATH/src/github.com/applidget/psdock`  
 `make`
 
@@ -38,11 +37,8 @@ Flags :
   * `--stdin` : path used to read the stdin passed to the launched process. Can be `"os.Stdin"` (default) or a TCP socket
   * `-c` : filepath of the TOML file used to read the arguments. No other flag can be passed if the -c flag is used
 
-In order to read the arguments from a TOML file : 
-
-  `psdock -c config.toml`
   
-  config.toml:
+TOML config files must have the follow the standard syntax : 
   
   `````toml
   command = "nc -l 8080"
