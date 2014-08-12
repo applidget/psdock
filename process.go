@@ -47,8 +47,19 @@ func (p *Process) SetEnvVars() {
 	}
 }
 
+//Terminate sends a SIGTERM signal, then waits nbSec seconds before sending a SIGKILL if necessary.
+//p.ioC.restoreIO() will be called at the end of the function
 func (p *Process) Terminate(nbSec int) error {
+	defer p.ioC.restoreIO()
+	if !p.isRunning() {
+		return nil
+	}
 	syscall.Kill(p.Cmd.Process.Pid, syscall.SIGTERM)
+
+	time.Sleep(time.Second)
+	if !p.isRunning() {
+		return nil
+	}
 	time.Sleep(time.Duration(nbSec) * time.Second)
 	if !p.isRunning() {
 		return nil
@@ -56,10 +67,12 @@ func (p *Process) Terminate(nbSec int) error {
 	return syscall.Kill(p.Cmd.Process.Pid, syscall.SIGKILL)
 }
 
+//returns true if p is started
 func (p *Process) isStarted() bool {
 	return p.Cmd.Process != nil
 }
 
+//returns true if p is running
 func (p *Process) isRunning() bool {
 	if p.Conf.BindPort == 0 {
 		return p.isStarted()
@@ -68,12 +81,15 @@ func (p *Process) isRunning() bool {
 	}
 }
 
+//hasBoundPort returns true if p has bound its port
 func (p *Process) hasBoundPort() bool {
 	//We execute lsof -i :bindPort to find if bindPort is open
-	//For the moment, we only verified that bindPort is used by some process
 	lsofCmd := exec.Command("lsof", "-i", ":"+strconv.Itoa(p.Conf.BindPort))
-
 	lsofBytes, _ := lsofCmd.Output()
+	return parseLsof(lsofBytes, p.Cmd.Process.Pid, getPIDs)
+}
+
+func parseLsof(lsofBytes []byte, pid int, retrievePIDs func(int) ([]int, error)) bool {
 	lsofScanner := bufio.NewScanner(bytes.NewBuffer(lsofBytes))
 	lsofScanner.Scan()
 	lsofScanner.Text()
@@ -87,7 +103,7 @@ func (p *Process) hasBoundPort() bool {
 
 	plsofResult = strings.Split(plsofResult[1], " ")
 	ownerPid, _ := strconv.Atoi(plsofResult[0])
-	ppids, _ := getPIDs(p.Cmd.Process.Pid)
+	ppids, _ := retrievePIDs(pid)
 	for _, v := range ppids {
 		if v == ownerPid {
 			return true
@@ -98,16 +114,17 @@ func (p *Process) hasBoundPort() bool {
 
 func (p *Process) Start() {
 	initCompleteChannel := make(chan bool)
+	runningMessChannel := make(chan bool)
 	p.eofChannel = make(chan bool, 1)
 
 	go func() {
 		var startErr error
 		p.Pty, startErr = pty.Start(p.Cmd)
 		if startErr != nil {
-			log.Println(startErr)
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: startErr}
 		}
 		initCompleteChannel <- true
-
+		_ = <-runningMessChannel
 		err := p.Cmd.Wait()
 		if err != nil {
 			log.Println(err)
@@ -118,6 +135,7 @@ func (p *Process) Start() {
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
 			log.Println(err)
 		}
+		p.ioC.restoreIO()
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: nil}
 	}()
 
@@ -130,7 +148,6 @@ func (p *Process) Start() {
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
-		defer p.ioC.restoreIO()
 
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
@@ -147,5 +164,6 @@ func (p *Process) Start() {
 			log.Println(err)
 		}
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
+		runningMessChannel <- true
 	}()
 }

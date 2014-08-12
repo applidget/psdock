@@ -10,6 +10,7 @@ type Notifier struct {
 	webHook string
 }
 
+//Notify sends a PUT request to the hook in order to trigger it
 func (n Notifier) Notify(status int) error {
 	if n.webHook == "" {
 		return nil
@@ -36,9 +37,10 @@ func (n Notifier) Notify(status int) error {
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
 		return errors.New("Was not able to trigger the hook!\n" + err.Error())
 	}
+	defer resp.Body.Close()
+
 	return nil
 }

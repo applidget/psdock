@@ -4,6 +4,7 @@ import (
 	"net"
 )
 
+//tcpLogger is the type used to communicate through a TCP connection
 type tcpLogger struct {
 	log *Logger
 }

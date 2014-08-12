@@ -43,7 +43,7 @@ func ParseArgs() (*Config, error) {
 	flag.StringVar(&parsedConfig.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
 	flag.StringVar(&parsedConfig.LogColor, "log-color", "black", "color for logging the output of the launched process")
 	flag.StringVar(&parsedConfig.EnvVars, "env-vars", "", "Config passed to the launched command")
-	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock(0 means no port is monitored)")
+	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock (0 means no port is monitored)")
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
 	flag.StringVar(&parsedConfig.Stdin, "stdin", "os.Stdin", "url used to read stdin")
 	flag.StringVar(&tomlConfigFilename, "c", "", "filename of the toml file used to read the config")
@@ -68,6 +68,15 @@ func ParseArgs() (*Config, error) {
 		}
 	}
 
+	//We haven't specified a file with the -c command. Let's still try to open PSDOCK_CFG_FILEPATH
+	if len(os.Args) == 1 {
+		if _, err = os.Stat(PSDOCK_CFG_FILEPATH); err == nil {
+			err = parseTOML(&parsedConfig, PSDOCK_CFG_FILEPATH)
+			if err != nil {
+				return nil, errors.New("Can't parse TOML file:" + err.Error())
+			}
+		}
+	}
 	//The user has to specify a process to run
 	if parsedConfig.Command == "" {
 		flag.PrintDefaults()
@@ -110,7 +119,7 @@ func ParseArgs() (*Config, error) {
 	return &parsedConfig, nil
 }
 
-//parseTOML parses a toml file in conf
+//parseTOML parses a toml file and fills conf
 func parseTOML(conf *Config, filename string) error {
 	if _, err := toml.DecodeFile(filename, conf); err != nil {
 		return err

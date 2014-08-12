@@ -12,4 +12,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   config.vm.provision "shell", path: "setup.sh"
 
+  config.vm.network :public_network
+
 end

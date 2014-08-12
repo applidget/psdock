@@ -1,6 +1,8 @@
 **psdock**
 ======
 
+[![Build Status](https://travis-ci.org/applidget/psdock.svg)](https://travis-ci.org/applidget/psdock)
+
 A simple tool to launch and monitor processes.
 
 **Install :**

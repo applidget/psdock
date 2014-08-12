@@ -33,10 +33,15 @@ func newIOContext(stdinStr string, pty *os.File, stdout, logPrefix, logRotation,
 }
 
 func (ioC *ioContext) restoreIO() error {
+	if ioC.oldTermState == nil {
+		return nil
+	}
 	err := terminal.Restore(int(ioC.stdinOutput.Fd()), ioC.oldTermState)
+	ioC.oldTermState = nil
 	return err
 }
 
+//redirectStdin parses stdinStr to determine the input, then setups the tty, starts the copy and returns
 func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string, statusChannel chan ProcessStatus) error {
 	url, err := url.Parse(stdinStr)
 	if err != nil {
@@ -80,6 +85,7 @@ func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string, statusChannel
 	return nil
 }
 
+//redirectStdout parses stdout, creates a logger for it, starts the copy and returns
 func (ioC *ioContext) redirectStdout(pty *os.File, stdout, logPrefix, logRotation, logColor string,
 	statusChannel chan ProcessStatus, eofChannel chan bool) error {
 	url, err := url.Parse(stdout)
@@ -113,7 +119,7 @@ func (ioC *ioContext) setTerminalColor(color string) error {
 	case "white":
 		_, err = ioC.term.Write(ioC.term.Escape.White)
 	default:
-		_, err = ioC.term.Write(ioC.term.Escape.Black)
+		_, err = ioC.term.Write(ioC.term.Escape.White)
 	}
 	return err
 }

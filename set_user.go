@@ -28,9 +28,17 @@ func SetUser(newUsername string) error {
 		return errors.New("Can't determine the new user UID !\n" + err.Error())
 	}
 
-	if err := syscall.Setuid(newUserUID); err != nil {
-		return errors.New("Can't change the user !\n" + err.Error())
+	newUserGID, err := strconv.Atoi(newUser.Gid)
+	if err != nil {
+		return errors.New("Can't determine the new user GID !\n" + err.Error())
 	}
 
+	if err := syscall.Setuid(newUserUID); err != nil {
+		return errors.New("Can't change the UID !\n" + err.Error())
+	}
+
+	if err := syscall.Setgid(newUserGID); err != nil {
+		return errors.New("Can't change the GID !\n" + err.Error())
+	}
 	return nil
 }
