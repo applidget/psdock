@@ -23,7 +23,7 @@ A simple tool to launch and monitor processes.
 Example :
 
   `````
-  psdock --command "nc -l 8080" --web-hook http://distantUrl:80 --bind-port 8080 --log-prefix "NETCAT"
+  psdock --command "nc -l 8080" --web-hook "http://distantUrl:80" --bind-port 8080 --log-prefix "NETCAT"
   `````
 
 Flags :  
