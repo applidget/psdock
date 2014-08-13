@@ -22,11 +22,11 @@ A simple tool to launch and monitor processes.
 ###Basic
 Ps-dock can launch a process very simply, in this way:
 
-    `psdock --command ls`
+    psdock --command ls
 ###Configuration files
 Configuration files can be specified in this way :
 
-    `psdock -c config.toml`
+    psdock -c config.toml
     
 If no argument is given, psdock will automatically search for the file at `/etc/psdock/psdock.conf`.
 
@@ -45,12 +45,12 @@ Three types of output can be specified :
 * Logfile : 
     For instance, you tell psdock to write the output of the process to a file named `bashLog`. Log-rotation is then automatically handled : by default, log files are rotated every day, but you can tell to psdock to rotate logs every minute, every hour, or every week :
     
-        `psdock --command bash --stdout "file:///bashLog" --log-rotation "hourly"`
+        psdock --command bash --stdout "file:///bashLog" --log-rotation "hourly"
     Instead of writing directly to `bashLog`, psdock will write the output to `bashLog.YYYY-MM-DD-hh-mm.log`, where the date is the creation time of this file. When its lifetime will expire, psdock will compress this file to a gzip archive named `bashLog.YYYY-MM-DD-hh-mm.tar.gz` and will start writing the output to a new file. Psdock also ensures that the numer of archived logs will not exceed 5.
 * TCP Socket : 
     The output of the process can be send through a TCP connection :
 
-        `psdock --command bash --stdout "tcp://localhost:666"`
+        psdock --command bash --stdout "tcp://localhost:666"
 
 ###Stdin
 Two types of stdin can be specified :
@@ -59,22 +59,22 @@ Two types of stdin can be specified :
 * TCP Socket : 
     The input of the process can be read from a TCP socket : 
 
-        `psdock --command bash --stdin "tcp://localhost:666"`
+        psdock --command bash --stdin "tcp://localhost:666"
 
 ###Log Formatting
 You can specify a prefix for the output of the process, and set its color : 
 
-    `psdock --command ls --log-prefix "[PREFIX]" --log-color "red"`
+    psdock --command ls --log-prefix "[PREFIX]" --log-color "red"
 
 The color can be `"black"` (default), `"white"`, `"red"`, `"green"`, `"blue"`, `"yellow"`, `"cyan"` or `"magenta"`. 
 
 ###Web Hook
 A web hook can be specified as a flag:
 
-    `psdock --command "bash" --web-hook "http://distantServer:3000"`
+    psdock --command "bash" --web-hook "http://distantServer:3000"
 Psdock will send status informations about the process to the web hook. Body of datas sent are formatted like this :
 
-    `{ps: { status: stat}}`
+    {ps: { status: stat}}
 
 where `stat` can be `PROCESS_STARTED`, `PROCESS_RUNNING` or `PROCESS_STOPPED`.
 
@@ -91,7 +91,7 @@ The process can be executed under a different user. To do so, you have to specif
 ###Environment variables
 You can specify the environment variables to set in the process execution context : 
 
-    psdock --command bash --env-vars "LD_PRELOAD="/path/to/my/malloc.so""
+    psdock --command bash --env-vars "LD_PRELOAD=\"/path/to/my/malloc.so\""
     
 #License
 
