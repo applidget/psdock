@@ -5,6 +5,6 @@ before_install:
 - go get github.com/mattn/goveralls
 - go get code.google.com/p/go.tools/cmd/cover
 - go get github.com/kr/godep
-- export PATH=$PATH:$HOME/gopath/bin
+- export PATH=$PATH:$HOME/gopath
 script:
 - goveralls -repotoken lAKAWPzcGsD3A8yBX3BGGtRUdJ6CaGERL
