@@ -30,7 +30,7 @@ Configuration files can be specified in this way :
     
 If no argument is given, ps-dock will automatically search for the file at /etc/psdock/psdock.conf.
 
-Here is an example of .psdockrc :
+Here is an example of config.toml :
     `````toml
     Command = "nc -l 8080"
     Webhook = "http://distantUrl:80"
@@ -43,10 +43,10 @@ Three types of output can be specified :
 * Standard output : 
     This is the output used if the -stdout option is not specified. The output from the process will be written on the standard output.
 * Logfile : 
-    For instance, you can specify a file name test.log to ps-dock. Log-rotation is the automatically handled : by defaults, log files are rotated every day, but you can tell to ps-dock to rotate logs every minute, every hour, or every week in this way:
+    For instance, you tell psdock to write the output of the process to a file named bashLog. Log-rotation is the automatically handled : by defaults, log files are rotated every day, but you can tell to ps-dock to rotate logs every minute, every hour, or every week in this way:
     
-        `psdock --command "bash" --stdout "file:///test.log" --log-rotation "hourly"`
-
+        `psdock --command "bash" --stdout "file:///bashLog" --log-rotation "hourly"`
+    Instead of writing directly to bashLog, psdock will write the output to `bashLog.YYYY-MM-DD-hh-mm.log`, where the date is the creation time of this file. When its lifetime will expire, psdock will compress this file to a gzip archive named `bashLog.YYYY-MM-DD-hh-mm.tar.gz` and will start writing the output to a new file. Psdock also ensures that the numer of archived logs will not exceed 5.
 * TCP Socket : 
     A distant socket to which send datas from process.
 
