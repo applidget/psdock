@@ -4,10 +4,7 @@ before_install:
 - go get github.com/axw/gocov/gocov
 - go get github.com/mattn/goveralls
 - go get code.google.com/p/go.tools/cmd/cover
+- go get github.com/kr/godep
 - export PATH=$PATH:$HOME/gopath/bin
 script:
-- $HOME/gopath/bin/goveralls -v -service=travis-ci
-
-install:
-- go get github.com/kr/godep
--
+- goveralls -repotoken lAKAWPzcGsD3A8yBX3BGGtRUdJ6CaGERL
