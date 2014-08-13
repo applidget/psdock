@@ -6,7 +6,7 @@
 A simple tool to launch and monitor processes.
 
 #Installation
-------------
+
 
 1) Make sure $GOPATH/bin is in your path and install godep  
 `go get github.com/kr/godep`  
@@ -18,13 +18,13 @@ A simple tool to launch and monitor processes.
 
 
 #Usage
-------------
+
 ###Basic
 Ps-dock can launch a process very simply, in this way:
 
     `psdock --command ls`
-###Config
-Config file can be specified in this way :
+###Configuration files
+Configuration files can be specified in this way :
 
     `psdock -c config.toml`
     
@@ -39,25 +39,24 @@ Here is an example of .psdockrc :
     `````
     
 ###Stdout
-Three types of stdout can be specified :
-* Standard output
-    This is the stdout used if the -stdout option is not specified. The output from the process will be written on the standard output.
-* Logfile
-
+Three types of output can be specified :
+* Standard output : 
+    This is the output used if the -stdout option is not specified. The output from the process will be written on the standard output.
+* Logfile : 
     For instance, you can specify a file name test.log to ps-dock. Log-rotation is the automatically handled : by defaults, log files are rotated every day, but you can tell to ps-dock to rotate logs every minute, every hour, or every week in this way:
     
         `psdock --command "bash" --stdout "file:///test.log" --log-rotation "hourly"`
 
-* TCP Socket
+* TCP Socket : 
     A distant socket to which send datas from process.
 
         `psdock --command "bash" --stdout "tcp://localhost:666"`
 
 ###Stdin
 Two types of stdin can be specified :
-* Standard input
-    This is the stdin used if the -stdin option is not specified. The data read on the standard input will be passed to the process
-* TCP Socket
+* Standard input : 
+    This is the input used if the -stdin option is not specified. The data read on the standard input will be passed to the process
+* TCP Socket : 
     A distant socket to which read data to pass to the process.
 
         `psdock --command "bash" --stdin "tcp://localhost:666"`
@@ -90,7 +89,11 @@ The process can be executed under a different user. To do so, you have to specif
 
     psdock --command bash --set-user "alice"
 
+###Environment variables
+You can specify the environment variables to set in the process execution context : 
 
+    psdock --command bash --env-vars "LD_PRELOAD="/path/to/my/malloc.so""
+    
 #License
-------------
+
 Psdock is licensed under the MIT license. See LICENSE for the full text.
