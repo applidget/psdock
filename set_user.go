@@ -9,6 +9,9 @@ import (
 
 //SetUser tries to change the current user to newUsername
 func SetUser(newUsername string) error {
+	if newUsername == "" {
+		return nil
+	}
 	currentUser, err := user.Current()
 	if err != nil {
 		return errors.New("Can't determine the current user !\n" + err.Error())
@@ -34,7 +37,7 @@ func SetUser(newUsername string) error {
 	}
 
 	if err := syscall.Setuid(newUserUID); err != nil {
-		return errors.New("Can't change the UID !\n" + err.Error())
+		return errors.New("Can't change the UID to " + newUsername + "!\n" + err.Error())
 	}
 
 	if err := syscall.Setgid(newUserGID); err != nil {
