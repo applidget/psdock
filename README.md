@@ -27,7 +27,7 @@ Psdock can launch a process very simply :
 
     psdock --command ls
 ###Configuration files
-Configuration files can be specified in this way :
+Configuration files can be used instead. Juste create a [toml](https://github.com/toml-lang/toml) file
 
     psdock -c config.toml
     
