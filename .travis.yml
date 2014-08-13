@@ -1,7 +1,7 @@
 language: go
 
 script:
--godep $HOME/gopath/bin/goveralls -repotoken lAKAWPzcGsD3A8yBX3BGGtRUdJ6CaGERL
+- godep $HOME/gopath/bin/goveralls -repotoken lAKAWPzcGsD3A8yBX3BGGtRUdJ6CaGERL
 
 install:
 - go get github.com/axw/gocov/gocov
