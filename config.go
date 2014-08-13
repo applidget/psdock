@@ -30,6 +30,7 @@ type Config struct {
 	WebHook     string
 	Stdin       string
 	UserName    string
+	Gateway     string
 }
 
 //ParseArgs parses command-line Config and returns them in an Config struct

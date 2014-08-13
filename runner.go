@@ -10,7 +10,11 @@ func Runner() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	if conf.Gateway != "" {
+		if err := SetGateway("10.0.3.1"); err != nil {
+			log.Fatal(err)
+		}
+	}
 	ps := NewProcess(conf)
 	if err = SetUser(ps.Conf.UserName); err != nil {
 		log.Fatal(err)
