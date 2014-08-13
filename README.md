@@ -34,12 +34,12 @@ Configuration files can be specified in this way :
 If no argument is given, psdock will automatically search for the file at `/etc/psdock/psdock.conf`.
 
 Here is an example of config.toml :
-    `````toml
+
     Command = "nc -l 8080"
     Webhook = "http://distantUrl:80"
     Bindport = 8080
     Logprefix= "NETCAT"
-    `````
+    
     
 ###Stdout
 Three types of output can be specified :
