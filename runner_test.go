@@ -215,16 +215,18 @@ func TestPsdockFileOutput(t *testing.T) {
 	runnerForTesting(conf)
 	fn, _ := retrieveFilenames("mylog", ".log")
 	s = fn[0]
-	cmd := exec.Command("ls")
-	defer os.Remove(s[2:])
-	boutLs, _ := cmd.Output()
-	outLs := string(boutLs)
-	outLs = strings.Replace(outLs, "\n", " ", -1)
 	psdockBytes, err := ioutil.ReadFile(s[2:])
 	if err != nil {
 		t.Error(err)
 	}
+	cmd := exec.Command("ls")
+	os.Remove(s[2:])
+	boutLs, _ := cmd.Output()
+	outLs := string(boutLs)
+	outLs = strings.Replace(outLs, "\n", " ", -1)
+
 	psdockStr := string(psdockBytes)
+	psdockStr = strings.Replace(psdockStr, s[2:], "", -1)
 
 	lsScanner := bufio.NewScanner(strings.NewReader(outLs))
 	lsScanner.Split(bufio.ScanWords)
