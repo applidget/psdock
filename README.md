@@ -9,18 +9,21 @@ A simple tool to launch and monitor processes.
 
 
 1) Make sure $GOPATH/bin is in your path and install godep  
-`go get github.com/kr/godep`  
-`export PATH=$PATH:$GOPATH/bin`  
-2) Get psdock and install it  
-`go get github.com/applidget/psdock`  
-`cd $GOPATH/src/github.com/applidget/psdock`  
-`make`
-
+`````
+go get github.com/kr/godep  
+export PATH=$PATH:$GOPATH/bin
+`````
+2) Get psdock and install it
+`````
+go get github.com/applidget/psdock  
+cd $GOPATH/src/github.com/applidget/psdock  
+make
+`````
 
 #Usage
 
 ###Basic
-Ps-dock can launch a process very simply, in this way:
+Psdock can launch a process very simply :
 
     psdock --command ls
 ###Configuration files
