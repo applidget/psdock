@@ -77,7 +77,7 @@ A web hook can be specified as a flag:
     psdock --command "bash" --web-hook "http://distantServer:3000"
 Psdock will send status informations about the process to the web hook, through a PUT HTTP request. The body will be formatted like this :
 
-    {ps: { status: stat}}
+    {ps: {status: stat}}
 
 where `stat` can be `PROCESS_STARTED`, `PROCESS_RUNNING` or `PROCESS_STOPPED`.
 
