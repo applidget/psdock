@@ -48,7 +48,7 @@
 
 <h3>
 <a name="quickstart" class="anchor" href="#quickstart"><span class="octicon octicon-link"></span></a>Quickstart</h3>
-
+<p>Psdock can be installed by <a href="https://github.com/applidget/psdock/releases">downloading the binary from Github</a>, or compiling it directly on your computer (you will need to have Go installed) : </p>
 <pre><code>$ go get github.com/kr/godep
 $ export PATH=$PATH:$GOPATH/bin
 $ go get github.com/applidget/psdock
@@ -59,7 +59,9 @@ $ make
 <h3>
 <a name="documentation" class="anchor" href="#documentation"><span class="octicon octicon-link"></span></a>Documentation</h3>
 
-<p>See the README in the <a href="http://github.com/applidget/psdock">github repository</a></p>
+<p>Psdock is easy to use. For example, to launch a process, redirect its stdout to a file, read its stdin from a TCP socket and trigger a HTTP hook when the process status changes, simply run</p>
+<pre><code>$ psdock --command "grep foo" --stdout "file:///var/log/nc" --stdin "tcp://distantserver:3000" --web-hook "http://hook:8080"</code></pre>
+<p>For the full list of options, see the README in the <a href="http://github.com/applidget/psdock">github repository</a></p>
 
 <h3>
 <a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h3>
