@@ -2,4 +2,4 @@ language: go
 
 before_install:
 - go get github.com/kr/godep
-- export PATH=$PATH:$HOME/gopath:$GOPATH
+- export PATH=$PATH:$HOME/gopath/bin
