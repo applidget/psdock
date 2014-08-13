@@ -14,7 +14,7 @@ $ go get github.com/kr/godep
 $ export PATH=$PATH:$GOPATH/bin
 `````
 2) Get psdock and install it
-`````
+`````bash
 $ go get github.com/applidget/psdock  
 $ cd $GOPATH/src/github.com/applidget/psdock  
 $ make
