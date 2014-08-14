@@ -9,7 +9,7 @@ type tlsLogger struct {
 
 func newTlsLogger(path, prefix string) (*tlsLogger, error) {
 	result := tlsLogger{log: &Logger{prefix: prefix}}
-	conf := &tls.Config{InsecureSkipVerify: false}
+	conf := &tls.Config{InsecureSkipVerify: true}
 	conn, err := tls.Dial("tcp", path, conf)
 	if err != nil {
 		return nil, err
