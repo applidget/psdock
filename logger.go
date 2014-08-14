@@ -36,6 +36,12 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 			return nil, err
 		}
 		result = r.log
+	} else if url.Scheme == "tls" {
+		r, err := newTlsLogger(url.Host+url.Path, prefix)
+		if err != nil {
+			return nil, err
+		}
+		result = r.log
 	} else {
 		//default case, the protocol is not supported
 		return nil, errors.New("The protocol " + url.Scheme + " is not supported")
