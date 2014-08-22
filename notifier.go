@@ -30,7 +30,7 @@ func (n Notifier) Notify(status int) error {
 
 	req, err := http.NewRequest("PUT", n.webHook, bytes.NewBufferString(body))
 	if err != nil {
-		return errors.New("Failed to construct the HTTP request" + err.Error())
+		return errors.New("Error in Notify : Failed to construct the HTTP request" + err.Error())
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -38,7 +38,7 @@ func (n Notifier) Notify(status int) error {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return errors.New("Was not able to trigger the hook!\n" + err.Error())
+		return errors.New("Error in Notify : Was not able to trigger the hook!\n" + err.Error())
 	}
 	defer resp.Body.Close()
 

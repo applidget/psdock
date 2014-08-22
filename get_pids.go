@@ -21,7 +21,7 @@ func treeTraversal(pid int, functor func(int) string) ([]int, error) {
 	for scanner.Scan() {
 		child, err := strconv.Atoi(scanner.Text())
 		if err != nil {
-			log.Println(err)
+			log.Println("Error in treeTraversal():" + err.Error())
 			break
 		}
 		childRecur, err := treeTraversal(child, functor)

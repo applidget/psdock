@@ -12,7 +12,7 @@ func SetGateway(gateway string) error {
 	out, err := cmd.Output()
 	if err != nil {
 		log.Println(out)
-		return errors.New("Can't set gw:" + err.Error())
+		return errors.New("Error in SetGateway:" + err.Error())
 	}
 	return nil
 }

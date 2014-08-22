@@ -3,6 +3,7 @@ package psdock
 import (
 	"bufio"
 	"compress/gzip"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,7 +25,7 @@ func NewFileLogger(fName, prfx, lRotation string, statusChannel chan ProcessStat
 	result := fileLogger{filename: fName, log: &Logger{prefix: prfx}, logRotation: lRotation}
 	err := result.openFirstOutputFile()
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Error in NewFileLogger():" + err.Error())
 	}
 	go result.manageLogRotation(statusChannel)
 	return &result, nil
@@ -35,7 +36,7 @@ func retrieveFilenames(filename, extension string) ([]string, error) {
 	dirName := filepath.Dir(filename)
 	fls, err := ioutil.ReadDir(dirName)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Error in retrieveFilenames():" + err.Error())
 	}
 	filenames := []string{}
 
@@ -69,7 +70,7 @@ func (flg *fileLogger) openFirstOutputFile() error {
 	tNow := time.Now()
 	filenames, err := retrieveFilenames(flg.filename, ".log")
 	if err != nil {
-		return err
+		return errors.New("Error in fileLogger.openFirstoutputFile():" + err.Error())
 	}
 
 	//Construct the list of possible new log filenames
@@ -83,7 +84,7 @@ func (flg *fileLogger) openFirstOutputFile() error {
 		}
 		if err != nil {
 			//We don't return here since we can try to open other files
-			log.Println(err)
+			log.Println("Error in fileLogger.openFirstoutputFile():" + err.Error())
 		} else {
 			break
 		}
@@ -105,28 +106,28 @@ func (flg *fileLogger) manageLogRotation(statusChannel chan ProcessStatus) {
 		//Open the new stdout file
 		filenames, err := retrieveFilenames(flg.filename, ".log")
 		if err != nil {
-			statusChannel <- ProcessStatus{Status: -1, Err: err}
+			statusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in fileLogger.manageLogRotation():" + err.Error())}
 		}
 
 		//Delete old files
 		filenamesToDelete, err := getFilenamesToDelete(flg.filename, 5)
 		if err != nil {
-			statusChannel <- ProcessStatus{Status: -1, Err: err}
+			statusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in fileLogger.manageLogRotation():" + err.Error())}
 		}
 		for _, fName := range filenamesToDelete {
 			if err := os.Remove(fName); err != nil {
-				log.Println("Can't delete " + fName + ":" + err.Error())
+				log.Println("Can't delete " + fName + ":" + "Error in fileLogger.manageLogRotation():" + err.Error())
 			}
 		}
 
 		sort.Sort(sort.Reverse(sort.StringSlice(constructNewLogFilenames(filenames, time.Now(), lifetime, flg.previousName))))
 		if err != nil {
-			statusChannel <- ProcessStatus{Status: -1, Err: err}
+			statusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in fileLogger.manageLogRotation():" + err.Error())}
 		}
 		for _, newFilename := range filenames {
 			f, err = os.Create(newFilename)
 			if err != nil {
-				statusChannel <- ProcessStatus{Status: -1, Err: err}
+				statusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in fileLogger.manageLogRotation():" + err.Error())}
 			}
 		}
 
@@ -136,12 +137,12 @@ func (flg *fileLogger) manageLogRotation(statusChannel chan ProcessStatus) {
 		flg.log.output = f
 		//Close the previous file
 		if err = oldOutput.Close(); err != nil {
-			statusChannel <- ProcessStatus{Status: -1, Err: err}
+			statusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in fileLogger.manageLogRotation():" + err.Error())}
 		}
 
 		//gzip&delete previousName
 		if err := compressOldOutput(flg.previousName); err != nil {
-			statusChannel <- ProcessStatus{Status: -1, Err: err}
+			statusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in fileLogger.manageLogRotation():" + err.Error())}
 		}
 		//Save the new name
 		flg.previousName = newName
@@ -153,24 +154,24 @@ func (flg *fileLogger) manageLogRotation(statusChannel chan ProcessStatus) {
 func compressOldOutput(oldFile string) error {
 	file, err := os.Create(oldFile + ".gz")
 	if err != nil {
-		return err
+		return errors.New("Error in compressOldOutput():" + err.Error())
 	}
 	defer file.Close()
 	gWriter := gzip.NewWriter(file)
 	defer gWriter.Close()
 	oldFileOpened, err := os.Open(oldFile)
 	if err != nil {
-		return err
+		return errors.New("Error in compressOldOutput():" + err.Error())
 	}
 	bufReader := bufio.NewReader(oldFileOpened)
 	if _, err = bufReader.WriteTo(gWriter); err != nil {
-		return err
+		return errors.New("Error in compressOldOutput():" + err.Error())
 	}
 	if err = gWriter.Flush(); err != nil {
-		return err
+		return errors.New("Error in compressOldOutput():" + err.Error())
 	}
 	if err = os.Remove(oldFile); err != nil {
-		return err
+		return errors.New("Error in compressOldOutput():" + err.Error())
 	}
 	return nil
 }
@@ -204,7 +205,7 @@ func convertLogRToDuration(lifetime string) time.Duration {
 func getFiveLast(filename string, nbFiles int, functor func(string, string) ([]string, error)) ([]string, error) {
 	archiveFilenames, err := functor(filename, ".gz")
 	if err != nil {
-		return []string{}, err
+		return []string{}, errors.New("Error in getFiveLast():" + err.Error())
 	}
 	if len(archiveFilenames) > nbFiles {
 		return archiveFilenames[nbFiles:], nil
