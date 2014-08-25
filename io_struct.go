@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"errors"
 	"io"
+	"log"
 	"net"
 	"net/url"
 	"os"
@@ -21,12 +22,13 @@ func newIOContext(stdinStr string, pty *os.File, stdout, logPrefix, logRotation,
 	var err error
 	result := &ioContext{}
 
+	//Since psdock is to be used in lxc containers, it won't be able to redirect the stdin in that case. Therefore, we do not fail in that case,
+	//but only signal the error
 	if err = result.redirectStdin(pty, stdinStr, statusChannel); err != nil {
-		return nil, errors.New("Can't redirect stdin:" + err.Error())
+		log.Println("Error in newIOContext:" + err.Error())
 	}
-
 	if err = result.redirectStdout(pty, stdout, logPrefix, logRotation, logColor, statusChannel, eofChannel); err != nil {
-		return nil, errors.New("Can't redirect stdout:" + err.Error())
+		return nil, errors.New("Error in newIOContext:" + err.Error())
 	}
 
 	return result, nil
@@ -45,33 +47,34 @@ func (ioC *ioContext) restoreIO() error {
 func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string, statusChannel chan ProcessStatus) error {
 	url, err := url.Parse(stdinStr)
 	if err != nil {
-		return err
+		return errors.New("Error in ioContext.redirectStdin():" + err.Error())
 	}
 	if url.Path == "os.Stdin" {
 		//We don't need to do anything here
 	} else if url.Scheme == "tcp" {
 		conn, err := net.Dial("tcp", url.Host+url.Path)
 		if err != nil {
-			return err
+			return errors.New("Error in ioContext.redirectStdin():" + err.Error())
 		}
 		//Directly copy from the connection to the pty. Escape chars won't be available
 		go func() {
 			io.Copy(pty, conn)
 			//When the remote stdin closes, terminate the process through the status Channel
-			statusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: errors.New("Remote stdin closed")}
+			statusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: errors.New("Error in ioContext.redirectStdin():Remote stdin closed")}
 		}()
 	} else {
 		//default case, the protocol is not supported
-		return errors.New("The protocol " + url.Scheme + " is not supported")
+		return errors.New("Error in ioContext.redirectStdin():The protocol " + url.Scheme + " is not supported")
 	}
 	ioC.stdinOutput = os.Stdin
 
-	//Set up the tty
+	//Set up the tty. We make sure that we do not fail BEFORE having created a term object
 	ioC.oldTermState, err = terminal.MakeRaw(int(ioC.stdinOutput.Fd()))
-	if err != nil {
-		return errors.New("Can't create terminal:" + err.Error())
-	}
 	ioC.term = terminal.NewTerminal(ioC.stdinOutput, "")
+	if err != nil {
+		return errors.New("Error in ioContext.redirectStdin():Can't create terminal:" + err.Error())
+	}
+
 	cb := func(s string, i int, r rune) (string, int, bool) {
 		car := []byte{byte(r)}
 		ioC.term.Write(car)
@@ -90,11 +93,11 @@ func (ioC *ioContext) redirectStdout(pty *os.File, stdout, logPrefix, logRotatio
 	statusChannel chan ProcessStatus, eofChannel chan bool) error {
 	url, err := url.Parse(stdout)
 	if err != nil {
-		return err
+		return errors.New("Error in ioContext.redirectStdout:" + err.Error())
 	}
 	ioC.log, err = newLogger(*url, logPrefix, logRotation, statusChannel)
 	if err != nil {
-		return err
+		return errors.New("Error in ioContext.redirectStdout:" + err.Error())
 	}
 	go ioC.log.startCopy(pty, eofChannel, ioC, logColor)
 

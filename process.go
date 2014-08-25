@@ -3,6 +3,7 @@ package psdock
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"github.com/kr/pty"
 	"log"
 	"os"
@@ -121,19 +122,20 @@ func (p *Process) Start() {
 		var startErr error
 		p.Pty, startErr = pty.Start(p.Cmd)
 		if startErr != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: startErr}
+			log.Printf("%#v", p.Cmd)
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in Process.Start():Error in pty.Start():" + startErr.Error())}
 		}
 		initCompleteChannel <- true
 		_ = <-runningMessChannel
 		err := p.Cmd.Wait()
 		if err != nil {
-			log.Println(err)
+			log.Println("Error in Process.start():Error in p.Cmd.Wait():" + err.Error())
 			p.Notif.Notify(PROCESS_STOPPED)
 			p.Terminate(5)
 		}
 		_ = <-p.eofChannel
 		if err = p.Notif.Notify(PROCESS_STOPPED); err != nil {
-			log.Println(err)
+			log.Println("Error in Process.start():" + err.Error())
 		}
 		p.ioC.restoreIO()
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_STOPPED, Err: nil}
@@ -146,22 +148,21 @@ func (p *Process) Start() {
 		p.ioC, err = newIOContext(p.Conf.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
 			p.StatusChannel, p.eofChannel)
 		if err != nil {
-			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
+			p.StatusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in Process.start():" + err.Error())}
 		}
 
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
 		}
 		if err = p.Notif.Notify(PROCESS_STARTED); err != nil {
-			log.Println(err)
+			log.Println("Error in Process.start():" + err.Error())
 		}
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_STARTED, Err: nil}
-
 		for p.isRunning() == false {
 			time.Sleep(100 * time.Millisecond)
 		}
 		if err = p.Notif.Notify(PROCESS_RUNNING); err != nil {
-			log.Println(err)
+			log.Println("Error in Process.start():" + err.Error())
 		}
 		p.StatusChannel <- ProcessStatus{Status: PROCESS_RUNNING, Err: nil}
 		runningMessChannel <- true

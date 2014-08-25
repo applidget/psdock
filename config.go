@@ -52,7 +52,7 @@ func ParseArgs() (*Config, error) {
 	//Retrieve the name of the current user. Will be used as a default value for user-name
 	user, err := user.Current()
 	if err != nil {
-		return nil, errors.New("Failed to retrieve the informations about the current user!\n" + err.Error())
+		return nil, errors.New("Error in ParseArgs():Failed to retrieve the informations about the current user!\n" + err.Error())
 	}
 	flag.StringVar(&parsedConfig.UserName, "user-name", user.Username, "name of the user launching the process")
 
@@ -61,11 +61,11 @@ func ParseArgs() (*Config, error) {
 	if tomlConfigFilename != "" {
 		if len(os.Args) != 3 {
 			flag.PrintDefaults()
-			return nil, errors.New("If a toml config file is given, you can't specify other arguments!")
+			return nil, errors.New("Error in ParseArgs():If a toml config file is given, you can't specify other arguments!")
 		}
 		err := parseTOML(&parsedConfig, tomlConfigFilename)
 		if err != nil {
-			return nil, errors.New("Can't parse TOML file:" + err.Error())
+			return nil, errors.New("Error in ParseArgs():Can't parse TOML file:" + err.Error())
 		}
 	}
 
@@ -74,14 +74,14 @@ func ParseArgs() (*Config, error) {
 		if _, err = os.Stat(PSDOCK_CFG_FILEPATH); err == nil {
 			err = parseTOML(&parsedConfig, PSDOCK_CFG_FILEPATH)
 			if err != nil {
-				return nil, errors.New("Can't parse TOML file:" + err.Error())
+				return nil, errors.New("Error in ParseArgs():Can't parse TOML file:" + err.Error())
 			}
 		}
 	}
 	//The user has to specify a process to run
 	if parsedConfig.Command == "" {
 		flag.PrintDefaults()
-		return nil, errors.New("You must specify a process to run")
+		return nil, errors.New("Error in ParseArgs():You must specify a process to run")
 	}
 
 	//Split the command given in process name & Config
@@ -97,7 +97,7 @@ func ParseArgs() (*Config, error) {
 	if parsedConfig.LogRotation != "minutely" && parsedConfig.LogRotation != "hourly" &&
 		parsedConfig.LogRotation != "daily" && parsedConfig.LogRotation != "weekly" {
 		flag.PrintDefaults()
-		return nil, errors.New("log-rotation has to be minutely, hourly, daily or weekly !")
+		return nil, errors.New("Error in ParseArgs():log-rotation has to be minutely, hourly, daily or weekly !")
 	}
 
 	if parsedConfig.LogColor != "black" && parsedConfig.LogColor != "white" &&
@@ -105,16 +105,16 @@ func ParseArgs() (*Config, error) {
 		parsedConfig.LogColor != "blue" && parsedConfig.LogColor != "yellow" &&
 		parsedConfig.LogColor != "magenta" && parsedConfig.LogColor != "cyan" {
 		flag.PrintDefaults()
-		return nil, errors.New("log-color has to be black, white, red, green, blue, yellow, cyan or magenta !")
+		return nil, errors.New("Error in ParseArgs():log-color has to be black, white, red, green, blue, yellow, cyan or magenta !")
 	}
 
 	if parsedConfig.BindPort > 0 && parsedConfig.WebHook == "" {
 		flag.PrintDefaults()
-		return nil, errors.New("If you specify a port, you have to specify a http hook !")
+		return nil, errors.New("Error in ParseArgs():If you specify a port, you have to specify a http hook !")
 	}
 	if parsedConfig.BindPort < 0 {
 		flag.PrintDefaults()
-		return nil, errors.New("bind-port can't be negative!")
+		return nil, errors.New("Error in ParseArgs():bind-port can't be negative!")
 	}
 
 	return &parsedConfig, nil
