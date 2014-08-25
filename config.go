@@ -48,6 +48,7 @@ func ParseArgs() (*Config, error) {
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
 	flag.StringVar(&parsedConfig.Stdin, "stdin", "os.Stdin", "url used to read stdin")
 	flag.StringVar(&tomlConfigFilename, "c", "", "filename of the toml file used to read the config")
+	flag.StringVar(&parsedConfig.Gateway, "gateway", "", "gateway used to access the network : applicable only if psdock is used as /sbin/init")
 
 	//Retrieve the name of the current user. Will be used as a default value for user-name
 	user, err := user.Current()

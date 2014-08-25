@@ -210,7 +210,7 @@ func TestPsdock(t *testing.T) {
 func TestPsdockFileOutput(t *testing.T) {
 	s := "file://mylog"
 	conf := &Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "[PRFX]",
-		EnvVars: "MYKEY = myval", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr", Gateway: "10.0.3.1"}
+		EnvVars: "MYKEY = myval", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr"}
 
 	runnerForTesting(conf)
 	fn, _ := retrieveFilenames("mylog", ".log")
@@ -389,7 +389,7 @@ func TestPsdockTCPOutput(t *testing.T) {
 	nc.Start()
 	time.Sleep(time.Second)
 	conf := Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "",
-		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr", Gateway: "10.0.3.1"}
+		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr"}
 	runnerForTestingWithTCPOutput(&conf)
 
 	psdockStr, _ := ioutil.ReadAll(stdout)
@@ -419,7 +419,7 @@ func TestPsdockTCPOutput(t *testing.T) {
 func TestLogRotate(t *testing.T) {
 	s := "file://mylog"
 	conf := &Config{Command: "sleep", Args: "70", Stdout: s, LogRotation: "minutely", LogColor: "black", LogPrefix: "",
-		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "", Gateway: "10.0.3.1"}
+		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: ""}
 
 	runnerForTesting(conf)
 	fn, _ := retrieveFilenames("mylog", ".gz")

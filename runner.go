@@ -12,7 +12,7 @@ func Runner() {
 		log.Fatal("Fatal error in Runner():" + err.Error())
 	}
 	if conf.Gateway != "" {
-		if err := SetGateway("10.0.3.1"); err != nil {
+		if err := SetGateway(conf.Gateway); err != nil {
 			log.Fatal("Fatal error in Runner():" + err.Error())
 		}
 	}
