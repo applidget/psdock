@@ -21,7 +21,6 @@ import (
 
 func runnerForTesting(conf *Config) {
 	var err error
-	SetGateway(conf.Gateway)
 	p := NewProcess(conf)
 	if err = SetUser(p.Conf.UserName); err != nil {
 		log.Fatal(err)

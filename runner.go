@@ -11,11 +11,7 @@ func Runner() {
 	if err != nil {
 		log.Fatal("Fatal error in Runner():" + err.Error())
 	}
-	if conf.Gateway != "" {
-		if err := SetGateway(conf.Gateway); err != nil {
-			log.Fatal("Fatal error in Runner():" + err.Error())
-		}
-	}
+
 	ps := NewProcess(conf)
 	if err = SetUser(ps.Conf.UserName); err != nil {
 		log.Fatal("Fatal error in Runner():" + err.Error())
