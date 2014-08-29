@@ -67,7 +67,7 @@ Two types of stdin can be specified :
 ###Log Formatting
 You can specify a prefix for the output of the process, and set its color : 
 
-    psdock --command ls --log-prefix "[PREFIX]" --log-color "red"
+    psdock --command ls --log-prefix "[PREFIX]" --log-prefix-color "red"
 
 The color can be `"black"` (default), `"white"`, `"red"`, `"green"`, `"blue"`, `"yellow"`, `"cyan"` or `"magenta"`. 
 
