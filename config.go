@@ -6,7 +6,6 @@ import (
 	"github.com/BurntSushi/toml"
 	"os"
 	"os/user"
-	//"strings"
 )
 
 //command is the name of the command to be executed by psdock
