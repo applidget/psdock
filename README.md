@@ -95,6 +95,9 @@ The process can be executed under a different user. To do so, you have to specif
 You can specify the environment variables to set in the process execution context :
 
     psdock --command bash --env-vars "LD_PRELOAD=\"/path/to/my/malloc.so\""
+  
+To specify more than one envrionment variable, separe those with commas.
+
 
 #License
 
