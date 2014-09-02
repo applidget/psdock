@@ -153,8 +153,6 @@ func runnerForTesting(conf *Config) {
 }
 
 func TestPsdock(t *testing.T) {
-	//Before running this test, /etc/psdock/psdock.conf should be :
-	//Command = "ls"
 	cmd := exec.Command("ls")
 	boutLs, err := cmd.Output()
 	outLs := string(boutLs)
@@ -203,13 +201,13 @@ func TestPsdock(t *testing.T) {
 	sort.Sort(sort.StringSlice(psdockSpliceResult))
 	psdockSpliceResultStr := strings.Join(psdockSpliceResult, "")
 	if lsSpliceResultStr != psdockSpliceResultStr {
-		t.Error("expected:" + lsSpliceResultStr + "\n\ngot:" + psdockSpliceResultStr)
+		t.Error("expected:\n" + lsSpliceResultStr + "\ngot:\n" + psdockSpliceResultStr)
 	}
 }
 
 func TestPsdockFileOutput(t *testing.T) {
 	s := "file://mylog"
-	conf := &Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "[PRFX]",
+	conf := &Config{Command: "ls", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "[PRFX]",
 		EnvVars: "MYKEY = myval", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr", Gateway: "10.0.3.1"}
 
 	runnerForTesting(conf)
@@ -247,7 +245,7 @@ func TestPsdockFileOutput(t *testing.T) {
 	psdockSpliceResultStr := strings.Join(psdockSpliceResult, "")
 	lsSpliceResultStr = strings.Replace(lsSpliceResultStr, s[2:], "", -1)
 	if psdockSpliceResultStr != lsSpliceResultStr {
-		t.Error("Expected" + lsSpliceResultStr + ", got:" + psdockSpliceResultStr)
+		t.Error("Expected:\n" + lsSpliceResultStr + "\ngot:\n" + psdockSpliceResultStr)
 	}
 }
 
@@ -388,7 +386,7 @@ func TestPsdockTCPOutput(t *testing.T) {
 	stdout, _ := nc.StdoutPipe()
 	nc.Start()
 	time.Sleep(time.Second)
-	conf := Config{Command: "ls", Args: "", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "",
+	conf := Config{Command: "ls", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "",
 		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr", Gateway: "10.0.3.1"}
 	runnerForTestingWithTCPOutput(&conf)
 
@@ -412,13 +410,13 @@ func TestPsdockTCPOutput(t *testing.T) {
 	psdockSpliceResultStr := strings.Join(psdockSpliceResult, "")
 	lsSpliceResultStr = strings.Replace(lsSpliceResultStr, s[2:], "", -1)
 	if psdockSpliceResultStr != lsSpliceResultStr {
-		t.Error("Expected" + lsSpliceResultStr + ", got:" + psdockSpliceResultStr)
+		t.Error("Expected:\n" + lsSpliceResultStr + "\ngot:\n" + psdockSpliceResultStr)
 	}
 }
 
 func TestLogRotate(t *testing.T) {
 	s := "file://mylog"
-	conf := &Config{Command: "sleep", Args: "70", Stdout: s, LogRotation: "minutely", LogColor: "black", LogPrefix: "",
+	conf := &Config{Command: "sleep 70", Stdout: s, LogRotation: "minutely", LogColor: "black", LogPrefix: "",
 		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "", Gateway: "10.0.3.1"}
 
 	runnerForTesting(conf)

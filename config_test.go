@@ -32,7 +32,7 @@ func TestParseToml(t *testing.T) {
 	}
 	conf := Config{}
 	parseTOML(&conf, tomlFilename)
-	expectedResult := Config{Command: "mycommand -v --flag value", Args: "", Stdout: "file:///home/vagrant/output", LogRotation: "hourly", LogColor: "yellow",
+	expectedResult := Config{Command: "mycommand -v --flag value", Stdout: "file:///home/vagrant/output", LogRotation: "hourly", LogColor: "yellow",
 		LogPrefix: "[PRFX]", EnvVars: "MYKEY=myval", BindPort: 9999, WebHook: "http://www.myhook.com", Stdin: "tcp://stdinServer:1337"}
 	if conf != expectedResult {
 		t.Errorf("expected:%#v\n-got:%#v", expectedResult, conf)

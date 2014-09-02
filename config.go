@@ -6,7 +6,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"os"
 	"os/user"
-	"strings"
+	//"strings"
 )
 
 //command is the name of the command to be executed by psdock
@@ -20,7 +20,6 @@ import (
 //user is the UID of the user launching the process
 type Config struct {
 	Command     string
-	Args        string
 	Stdout      string
 	LogRotation string
 	LogPrefix   string
@@ -82,16 +81,6 @@ func ParseArgs() (*Config, error) {
 	if parsedConfig.Command == "" {
 		flag.PrintDefaults()
 		return nil, errors.New("Error in ParseArgs():You must specify a process to run")
-	}
-
-	//Split the command given in process name & Config
-	commandSplited := strings.SplitAfterN(parsedConfig.Command, " ", 2)
-	if len(commandSplited) == 1 {
-		parsedConfig.Command = commandSplited[0]
-		parsedConfig.Args = ""
-	} else {
-		parsedConfig.Command = commandSplited[0][:len(commandSplited[0])-1] //drop the last char (' ')
-		parsedConfig.Args = commandSplited[1]
 	}
 
 	if parsedConfig.LogRotation != "minutely" && parsedConfig.LogRotation != "hourly" &&
