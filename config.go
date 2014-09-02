@@ -42,12 +42,13 @@ func ParseArgs() (*Config, error) {
 	flag.StringVar(&parsedConfig.Stdout, "stdout", "os.Stdout", "redirection path for the stdout/stderr of the launched process")
 	flag.StringVar(&parsedConfig.LogRotation, "log-rotation", "daily", "lifetime of a single log file.")
 	flag.StringVar(&parsedConfig.LogPrefix, "log-prefix", "", "prefix for logging the output of the launched process")
-	flag.StringVar(&parsedConfig.LogColor, "log-color", "black", "color for logging the output of the launched process")
+	flag.StringVar(&parsedConfig.LogColor, "log-prefix-color", "black", "color for logging the output of the launched process")
 	flag.StringVar(&parsedConfig.EnvVars, "env-vars", "", "Config passed to the launched command")
 	flag.IntVar(&parsedConfig.BindPort, "bind-port", 0, "port to be watched for binding by psdock (0 means no port is monitored)")
 	flag.StringVar(&parsedConfig.WebHook, "web-hook", "", "hook triggered by psdock in case of special events")
 	flag.StringVar(&parsedConfig.Stdin, "stdin", "os.Stdin", "url used to read stdin")
 	flag.StringVar(&tomlConfigFilename, "c", "", "filename of the toml file used to read the config")
+	flag.StringVar(&parsedConfig.Gateway, "gateway", "", "gateway used to access the network : applicable only if psdock is used as /sbin/init")
 
 	//Retrieve the name of the current user. Will be used as a default value for user-name
 	user, err := user.Current()
@@ -105,7 +106,7 @@ func ParseArgs() (*Config, error) {
 		parsedConfig.LogColor != "blue" && parsedConfig.LogColor != "yellow" &&
 		parsedConfig.LogColor != "magenta" && parsedConfig.LogColor != "cyan" {
 		flag.PrintDefaults()
-		return nil, errors.New("Error in ParseArgs():log-color has to be black, white, red, green, blue, yellow, cyan or magenta !")
+		return nil, errors.New("Error in ParseArgs():log-prefix-color has to be black, white, red, green, blue, yellow, cyan or magenta !")
 	}
 
 	if parsedConfig.BindPort > 0 && parsedConfig.WebHook == "" {
