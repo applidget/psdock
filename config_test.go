@@ -1,7 +1,6 @@
 package psdock
 
 import (
-	//"flag"
 	"io"
 	"log"
 	"os"

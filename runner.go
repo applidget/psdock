@@ -13,7 +13,7 @@ func Runner() {
 	}
 	if conf.Gateway != "" {
 		if err := SetGateway(conf.Gateway); err != nil {
-			log.Fatal(err)
+			log.Fatal("Fatal error in Runner():" + err.Error())
 		}
 	}
 	ps := NewProcess(conf)

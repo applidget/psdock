@@ -209,7 +209,6 @@ func TestPsdockFileOutput(t *testing.T) {
 	s := "file://mylog"
 	conf := &Config{Command: "ls", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "[PRFX]",
 		EnvVars: "MYKEY = myval", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr", Gateway: "10.0.3.1"}
-
 	runnerForTesting(conf)
 	fn, _ := retrieveFilenames("mylog", ".log")
 	s = fn[0]
