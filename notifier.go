@@ -17,11 +17,11 @@ func (n Notifier) Notify(status int) error {
 	}
 	statusStr := ""
 	if status == PROCESS_STARTED {
-		statusStr = "started"
+		statusStr = "\"started\""
 	} else if status == PROCESS_RUNNING {
-		statusStr = "running"
+		statusStr = "\"running\""
 	} else {
-		statusStr = "stopped"
+		statusStr = "\"stopped\""
 	}
 	body := `{
 							"ps":
