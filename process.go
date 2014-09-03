@@ -27,11 +27,8 @@ type Process struct {
 //NewProcess creates a new struct of type *Process and returns its address
 func NewProcess(conf *Config) *Process {
 	var cmd *exec.Cmd
-	if len(conf.Args) > 0 {
-		cmd = exec.Command(conf.Command, strings.Split(conf.Args, " ")...)
-	} else {
-		cmd = exec.Command(conf.Command)
-	}
+	shell := os.Getenv("SHELL")
+	cmd = exec.Command(shell, "-c", conf.Command)
 	newStatusChannel := make(chan ProcessStatus, 1)
 
 	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, Notif: Notifier{webHook: conf.WebHook}}
@@ -144,7 +141,6 @@ func (p *Process) Start() {
 	go func() {
 		var err error
 		_ = <-initCompleteChannel
-
 		p.ioC, err = newIOContext(p.Conf.Stdin, p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor,
 			p.StatusChannel, p.eofChannel)
 		if err != nil {
