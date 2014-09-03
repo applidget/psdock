@@ -51,7 +51,6 @@ func (ioC *ioContext) redirectStdin(pty *os.File, stdinStr string, statusChannel
 	}
 	if url.Path == "os.Stdin" {
 		ioC.stdinOutput = os.Stdin
-		//We don't need to do anything here
 		go io.Copy(pty, os.Stdin)
 	} else if url.Scheme == "tcp" {
 		conn, err := net.Dial("tcp", url.Host+url.Path)
