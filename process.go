@@ -120,6 +120,7 @@ func (p *Process) Start() {
 		p.Pty, startErr = pty.Start(p.Cmd)
 		if startErr != nil {
 			log.Printf("%#v", p.Cmd)
+			p.ioC.restoreIO()
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: errors.New("Error in Process.Start():Error in pty.Start():" + startErr.Error())}
 		}
 		initCompleteChannel <- true
@@ -127,6 +128,7 @@ func (p *Process) Start() {
 		err := p.Cmd.Wait()
 		if err != nil {
 			log.Println("Error in Process.start():Error in p.Cmd.Wait():" + err.Error())
+			p.ioC.restoreIO()
 			p.Notif.Notify(PROCESS_STOPPED)
 			p.Terminate(5)
 		}

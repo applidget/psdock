@@ -16,13 +16,13 @@ type Logger struct {
 	writePrefixNext bool
 }
 
-func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan ProcessStatus) (*Logger, error) {
+func newLogger(stdoutUrl url.URL, stdinStr, prefix, lRotation string, stdinOutput io.WriteCloser, statusChannel chan ProcessStatus) (*Logger, error) {
 	var result *Logger
-	if url.Path == "os.Stdout" {
+	var err error
+	if stdoutUrl.Path == "os.Stdout" {
 		result = &Logger{output: os.Stdout, prefix: prefix}
-	} else if url.Scheme == "file" {
-		var err error
-		r, err := NewFileLogger(url.Host+url.Path, prefix, lRotation, statusChannel)
+	} else if stdoutUrl.Scheme == "file" {
+		r, err := NewFileLogger(stdoutUrl.Host+stdoutUrl.Path, prefix, lRotation, statusChannel)
 		if err != nil {
 			return nil, errors.New("Error in newLogger" + err.Error())
 		}
@@ -31,27 +31,35 @@ func newLogger(url url.URL, prefix string, lRotation string, statusChannel chan 
 			return nil, errors.New("Error in newLogger" + err.Error())
 		}
 		result = r.log
-	} else if url.Scheme == "tcp" {
-		r, err := newTcpLogger(url.Host+url.Path, prefix)
+	} else if stdoutUrl.Scheme == "tcp" {
+		r, err := newTcpLogger(stdoutUrl.Host+stdoutUrl.Path, prefix)
 		if err != nil {
 			return nil, errors.New("Error in newLogger" + err.Error())
 		}
 		result = r.log
-	} else if url.Scheme == "tls" {
-		//If it is a TLS Logger, split the url : the first part is used to connect to the socket, the second is written on it
-		r, err := newTlsLogger(url.Host, prefix)
-		if err != nil {
-			return nil, errors.New("Error in newLogger" + err.Error())
+	} else if stdoutUrl.Scheme == "tls" {
+		//Is the host for the stdin and the stdout is the same we don't reconnect
+		stdinUrl, _ := url.Parse(stdinStr)
+		if stdoutUrl.Host == stdinUrl.Host {
+			result = &Logger{output: stdinOutput, prefix: prefix}
+		} else {
+			//If it is a TLS Logger, split the url : the first part is used to connect to the socket, the second is written on it
+			r, err := newTlsLogger(stdoutUrl.Host, prefix)
+			if err != nil {
+				return nil, errors.New("Error in newLogger" + err.Error())
+			}
+			result = r.log
 		}
-		result = r.log
-		header := strings.Join([]string{url.Path[1 : len(url.Path)-2], "%0A%0A"}, "")
-		_, err = result.output.Write([]byte(header))
-		if err != nil {
-			return nil, errors.New("Error in newLogger" + err.Error())
+		if len(stdoutUrl.Path) > 2 {
+			header := strings.Join([]string{stdoutUrl.Path[1 : len(stdoutUrl.Path)-2], "%0A%0A"}, "")
+			_, err = result.output.Write([]byte(header))
+			if err != nil {
+				return nil, errors.New("Error in newLogger" + err.Error())
+			}
 		}
 	} else {
 		//default case, the protocol is not supported
-		return nil, errors.New("The protocol " + url.Scheme + " is not supported")
+		return nil, errors.New("The protocol " + stdoutUrl.Scheme + " is not supported")
 	}
 	return result, nil
 }

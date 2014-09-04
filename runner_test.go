@@ -60,7 +60,7 @@ func runnerForTesting(conf *Config) {
 		_ = <-initCompleteChannel
 
 		p.ioC = &ioContext{}
-		err = p.ioC.redirectStdout(p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor, p.StatusChannel, p.eofChannel)
+		err = p.ioC.redirectStdout(p.Pty, p.Conf.Stdout, p.Conf.Stdin, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor, p.StatusChannel, p.eofChannel)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
@@ -89,12 +89,11 @@ func runnerForTesting(conf *Config) {
 			//default case, the protocol is not supported
 			log.Println("The protocol " + url.Scheme + " is not supported")
 		}
-		p.ioC.stdinOutput = os.Stdin
 
 		if err != nil {
 			log.Println("Can't create terminal:" + err.Error())
 		}
-		p.ioC.term = terminal.NewTerminal(p.ioC.stdinOutput, "")
+		p.ioC.term = terminal.NewTerminal(os.Stdin, "")
 		cb := func(s string, i int, r rune) (string, int, bool) {
 			car := []byte{byte(r)}
 			p.ioC.term.Write(car)
@@ -103,7 +102,7 @@ func runnerForTesting(conf *Config) {
 		p.ioC.term.AutoCompleteCallback = cb
 
 		//Copy everything from os.Stdin to the pty
-		go io.Copy(pty, p.ioC.stdinOutput)
+		go io.Copy(pty, os.Stdin)
 
 		//Write all the color symbols
 		colors := []string{"magenta", "white", "red", "blue", "green", "yellow", "cyan", "black"}
@@ -289,7 +288,7 @@ func runnerForTestingWithTCPOutput(conf *Config) {
 		_ = <-initCompleteChannel
 
 		p.ioC = &ioContext{}
-		err = p.ioC.redirectStdout(p.Pty, p.Conf.Stdout, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor, p.StatusChannel, p.eofChannel)
+		err = p.ioC.redirectStdout(p.Pty, p.Conf.Stdout, p.Conf.Stdin, p.Conf.LogPrefix, p.Conf.LogRotation, p.Conf.LogColor, p.StatusChannel, p.eofChannel)
 		if err != nil {
 			p.StatusChannel <- ProcessStatus{Status: -1, Err: err}
 		}
@@ -318,12 +317,11 @@ func runnerForTestingWithTCPOutput(conf *Config) {
 			//default case, the protocol is not supported
 			log.Println("The protocol " + url.Scheme + " is not supported")
 		}
-		p.ioC.stdinOutput = os.Stdin
 
 		if err != nil {
 			log.Println("Can't create terminal:" + err.Error())
 		}
-		p.ioC.term = terminal.NewTerminal(p.ioC.stdinOutput, "")
+		p.ioC.term = terminal.NewTerminal(os.Stdin, "")
 		cb := func(s string, i int, r rune) (string, int, bool) {
 			car := []byte{byte(r)}
 			p.ioC.term.Write(car)
@@ -332,7 +330,7 @@ func runnerForTestingWithTCPOutput(conf *Config) {
 		p.ioC.term.AutoCompleteCallback = cb
 
 		//Copy everything from os.Stdin to the pty
-		go io.Copy(pty, p.ioC.stdinOutput)
+		go io.Copy(pty, os.Stdin)
 
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
