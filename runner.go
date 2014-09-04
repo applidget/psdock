@@ -16,10 +16,9 @@ func Runner() {
 			log.Fatal("Fatal error in Runner():" + err.Error())
 		}
 	}
+
 	ps := NewProcess(conf)
-	if err = SetUser(ps.Conf.UserName); err != nil {
-		log.Fatal("Fatal error in Runner():" + err.Error())
-	}
+	//Setuser
 	ps.SetEnvVars()
 	ps.Start()
 

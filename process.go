@@ -117,6 +117,15 @@ func (p *Process) Start() {
 
 	go func() {
 		var startErr error
+
+		//For the moment, the go implementation of the setuid syscall is buggy : it only affects the current thread, not the whole process
+		//(see https://code.google.com/p/go/issues/detail?id=1435)
+		//Therefore, the call has to be done in the goroutine used to launch the process
+		//The setuser call should be moved in runner.go (before the Start() call) once this bug is solved
+		if err := SetUser(p.Conf.UserName); err != nil {
+			log.Fatal("Fatal error in Runner():" + err.Error())
+		}
+
 		p.Pty, startErr = pty.Start(p.Cmd)
 		if startErr != nil {
 			log.Printf("%#v", p.Cmd)
