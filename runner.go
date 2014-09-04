@@ -18,7 +18,6 @@ func Runner() {
 	}
 
 	ps := NewProcess(conf)
-	//Setuser
 	ps.SetEnvVars()
 	ps.Start()
 
