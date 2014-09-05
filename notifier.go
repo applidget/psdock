@@ -33,7 +33,7 @@ func (n Notifier) Notify(status int) error {
 		return errors.New("Error in Notify : Failed to construct the HTTP request" + err.Error())
 	}
 
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 
 	resp, err := client.Do(req)

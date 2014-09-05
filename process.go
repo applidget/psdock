@@ -27,8 +27,20 @@ type Process struct {
 //NewProcess creates a new struct of type *Process and returns its address
 func NewProcess(conf *Config) *Process {
 	var cmd *exec.Cmd
-	shell := os.Getenv("SHELL")
-	cmd = exec.Command(shell, "-c", conf.Command)
+	command := ""
+	//try to find an HOME to export
+	for _, envVar := range strings.Split(conf.EnvVars, ",") {
+		if strings.Contains(envVar, "=") {
+			kv := strings.Split(envVar, "=")
+			key := kv[0]
+			val := kv[1]
+			if key == "HOME" {
+				command = "cd " + val + " ; "
+			}
+		}
+	}
+	command = command + conf.Command
+	cmd = exec.Command("/bin/bash", "-c", command)
 	newStatusChannel := make(chan ProcessStatus, 1)
 
 	return &Process{Cmd: cmd, Conf: conf, StatusChannel: newStatusChannel, Notif: Notifier{webHook: conf.WebHook}}
