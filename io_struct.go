@@ -120,20 +120,25 @@ func (ioC *ioContext) setTerminalColor(color string) error {
 	var err error
 	switch color {
 	case "red":
+		ioC.log.output.Write([]byte("\x1b[31;1m"))
 		_, err = ioC.term.Write(ioC.term.Escape.Red)
 	case "green":
+		ioC.log.output.Write([]byte("\x1b[32;1m"))
 		_, err = ioC.term.Write(ioC.term.Escape.Green)
 	case "blue":
+		ioC.log.output.Write([]byte("\x1b[34;1m"))
 		_, err = ioC.term.Write(ioC.term.Escape.Blue)
 	case "yellow":
+		ioC.log.output.Write([]byte("\x1b[33;1m"))
 		_, err = ioC.term.Write(ioC.term.Escape.Yellow)
 	case "magenta":
+		ioC.log.output.Write([]byte("\x1b[35;1m"))
 		_, err = ioC.term.Write(ioC.term.Escape.Magenta)
 	case "cyan":
+		ioC.log.output.Write([]byte("\x1b[36;1m"))
 		_, err = ioC.term.Write(ioC.term.Escape.Cyan)
 	case "white":
-		_, err = ioC.term.Write(ioC.term.Escape.White)
-	default:
+		ioC.log.output.Write([]byte("\x1b[37;1m"))
 		_, err = ioC.term.Write(ioC.term.Escape.White)
 	}
 	return err
@@ -141,6 +146,7 @@ func (ioC *ioContext) setTerminalColor(color string) error {
 
 func (ioC *ioContext) resetTerminal() error {
 	var err error
+	ioC.log.output.Write([]byte("\x1b[0m"))
 	_, err = ioC.term.Write(ioC.term.Escape.Reset)
 	return err
 }

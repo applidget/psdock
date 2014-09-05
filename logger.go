@@ -108,21 +108,24 @@ func (log *Logger) startCopy(pty *os.File, eofChannel chan bool, ioC *ioContext,
 func (log *Logger) writePrefix(color string, ioC *ioContext) error {
 	var err error
 
-	//Color output
-	err = ioC.setTerminalColor(color)
-	if err != nil {
-		return errors.New("Error in Logger.writeprefix():" + err.Error())
+	if log.prefix != "" {
+		//Color output
+		err = ioC.setTerminalColor(color)
+		if err != nil {
+			return errors.New("Error in Logger.writeprefix():" + err.Error())
+		}
+
+		//Write prefix
+		_, err = log.output.Write([]byte(log.prefix))
+		if err != nil {
+			return errors.New("Error in Logger.writeprefix():" + err.Error())
+		}
+		//Uncolor output
+		err = ioC.resetTerminal()
+		if err != nil {
+			return errors.New("Error in Logger.writeprefix():" + err.Error())
+		}
 	}
 
-	//Write prefix
-	_, err = log.output.Write([]byte(log.prefix))
-	if err != nil {
-		return errors.New("Error in Logger.writeprefix():" + err.Error())
-	}
-	//Uncolor output
-	err = ioC.resetTerminal()
-	if err != nil {
-		return errors.New("Error in Logger.writeprefix():" + err.Error())
-	}
 	return nil
 }

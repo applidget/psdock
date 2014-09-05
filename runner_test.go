@@ -104,12 +104,6 @@ func runnerForTesting(conf *Config) {
 		//Copy everything from os.Stdin to the pty
 		go io.Copy(pty, os.Stdin)
 
-		//Write all the color symbols
-		colors := []string{"magenta", "white", "red", "blue", "green", "yellow", "cyan", "black"}
-		for _, color := range colors {
-			p.ioC.setTerminalColor(color)
-		}
-
 		for !p.isStarted() {
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -206,7 +200,7 @@ func TestPsdock(t *testing.T) {
 
 func TestPsdockFileOutput(t *testing.T) {
 	s := "file://mylog"
-	conf := &Config{Command: "ls", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "[PRFX]",
+	conf := &Config{Command: "ls", Stdout: s, LogRotation: "daily",
 		EnvVars: "MYKEY = myval", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr", Gateway: "10.0.3.1"}
 	runnerForTesting(conf)
 	fn, _ := retrieveFilenames("mylog", ".log")
@@ -383,7 +377,7 @@ func TestPsdockTCPOutput(t *testing.T) {
 	stdout, _ := nc.StdoutPipe()
 	nc.Start()
 	time.Sleep(time.Second)
-	conf := Config{Command: "ls", Stdout: s, LogRotation: "daily", LogColor: "black", LogPrefix: "",
+	conf := Config{Command: "ls", Stdout: s, LogRotation: "daily", LogPrefix: "",
 		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "http://www.google.fr", Gateway: "10.0.3.1"}
 	runnerForTestingWithTCPOutput(&conf)
 
@@ -413,7 +407,7 @@ func TestPsdockTCPOutput(t *testing.T) {
 
 func TestLogRotate(t *testing.T) {
 	s := "file://mylog"
-	conf := &Config{Command: "sleep 70", Stdout: s, LogRotation: "minutely", LogColor: "black", LogPrefix: "",
+	conf := &Config{Command: "sleep 70", Stdout: s, LogRotation: "minutely", LogPrefix: "",
 		EnvVars: "", BindPort: 0, Stdin: "os.Stdin", UserName: "", WebHook: "", Gateway: "10.0.3.1"}
 
 	runnerForTesting(conf)
