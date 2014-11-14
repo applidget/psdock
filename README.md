@@ -7,7 +7,7 @@ A simple tool to launch and monitor processes.
 
 #Installation
 
-just curlable path, no go get and stuff
+TODO: curlable tar gz
 
 #Usage
 
