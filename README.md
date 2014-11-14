@@ -7,18 +7,7 @@ A simple tool to launch and monitor processes.
 
 #Installation
 
-
-1) Make sure $GOPATH/bin is in your path and install godep  
-`````bash
-$ go get github.com/kr/godep  
-$ export PATH=$PATH:$GOPATH/bin
-`````
-2) Get psdock and install it
-`````bash
-$ go get github.com/applidget/psdock  
-$ cd $GOPATH/src/github.com/applidget/psdock  
-$ make
-`````
+just curlable path, no go get and stuff
 
 #Usage
 
@@ -98,6 +87,13 @@ You can specify the environment variables to set in the process execution contex
   
 To specify more than one envrionment variable, separe those with commas.
 
+#Development
+
+1. Setup a proper golang
+ [workspace](https://golang.org/doc/code.html#Workspaces)
+2. Clone this repository into your workspace
+3. `cd` into `psdock`
+3. Install dependencies by launching `sh vendor.sh`. This will create a `vendor` directory and give you instructions to finalize your development environment
 
 #License
 

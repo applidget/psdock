@@ -1,5 +1,9 @@
 language: go
 
+go:
+  -tip
+
 install:
-- go get github.com/kr/godep
-- export PATH=$PATH:$HOME/gopath/bin
+  - sh vendor.sh
+  - export GOPATH=$GOPATH:$GOPATH/src/github.com/applidget/psdock/vendor
+
