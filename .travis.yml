@@ -1,8 +1,5 @@
 language: go
 
-go:
-  -tip
-
 install:
   - sh vendor.sh
   - export GOPATH=$GOPATH:$GOPATH/src/github.com/applidget/psdock/vendor
