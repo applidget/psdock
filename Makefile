@@ -1,16 +1,22 @@
 # make .
 # make -C path/dir
 
-build: psdock
-	$(info ==> psdock binary in $(GOPATH)/bin/psdock (tip: add the $(GOPATH)/bin to your PATH))
-	godep go test
 
-psdock: check_env
-	godep go build
-	godep go install ./cmd/psdock/
-	godep go install ./cmd/psdock-init/
+# Note: make release can't rely on cross compiling (https://code.google.com/p/go/issues/detail?id=6376)
+#       must be ran on linux and darwin
 
-check_env:
-ifndef GOPATH
-	$(error GOPATH must be set)
-endif
+HARDWARE=$(shell uname -m)
+OS=$(shell uname -s)
+
+test:
+	go test
+
+build:
+	$(info ==> psdock binary will be in GOPATH/bin/psdock (tip: add GOPATH/bin to your PATH))
+	go install ./cmd/psdock/
+	
+release:
+	mkdir -p release
+	cd ./cmd/psdock && go build -o ../../release/psdock
+	cd release && tar -zcf psdock_$(OS)_$(HARDWARE).tar.gz psdock
+	rm release/psdock
