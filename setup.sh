@@ -1,7 +1,8 @@
 ##!/bin/ash
 
 set -e
- 
+
+sudo add-apt-repository -y ppa:duh/golang #latest golang version
 sudo apt-get update -qq
 
 echo "Installing base stack"
@@ -27,6 +28,7 @@ packagelist=(
   python-software-properties
   golang
   zsh
+  mercurial
 )
  
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${packagelist[@]}

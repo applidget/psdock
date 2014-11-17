@@ -7,7 +7,17 @@ A simple tool to launch and monitor processes.
 
 #Installation
 
-TODO: curlable tar gz
+Linux
+
+````bash
+curl -sL https://github.com/applidget/psdock/releases/download/v1.1.1/psdock_Linux_x86_64.tar.gz | tar -C /usr/local/bin -zxf -
+````
+
+OSX
+
+````bash
+curl -sL https://github.com/applidget/psdock/releases/download/v1.1.1/psdock_darwin_x86_64.tar.gz | tar -C /usr/local/bin -zxf -
+````
 
 #Usage
 
